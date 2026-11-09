@@ -17,7 +17,7 @@ import { gradeObjectiveAnswers } from "./assessment.js";
 import { config } from "./config.js";
 import { clearAuthCookie, requireAdmin, requireAuth, setAuthCookie, type AuthenticatedRequest } from "./auth.js";
 import { AssessmentAttempt, Certificate, ChatMessage, ChatThread, ContentEntry, Course, Enrollment, Follow, PlatformSettings, SocialPost, User } from "./models.js";
-import { assessmentAnswersSchema, chatMessageSchema, contentSchema, courseSchema, profileSchema, registrationSchema, socialCommentSchema, socialPostSchema } from "./validation.js";
+import { adminRegistrationSchema, assessmentAnswersSchema, chatMessageSchema, contentSchema, courseSchema, profileSchema, registrationSchema, socialCommentSchema, socialPostSchema } from "./validation.js";
 
 const app = express();
 const router = express.Router();
@@ -141,6 +141,44 @@ router.post("/auth/register", authRateLimit, async (req, res, next) => {
     });
     setAuthCookie(res, user);
     res.status(201).json({ user: { id: user.id, name: user.name, email: user.email, role: user.role, memberId: user.memberId } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/auth/admin-create", authRateLimit, requireAdmin, async (req, res, next) => {
+  try {
+    const adminCreationSetting = await PlatformSettings.findOne({ key: "adminAccountCreationEnabled" }).lean();
+    if (adminCreationSetting?.value === false) {
+      return sendError(res, 403, "Admin account creation is currently disabled by an administrator.");
+    }
+    const data = parseOrRespond(adminRegistrationSchema, req.body, res);
+    if (!data) return;
+    const email = data.email.toLowerCase();
+    if (await User.exists({ email })) return sendError(res, 409, "An account with this email already exists.");
+    const user = await User.create({
+      name: data.name,
+      email,
+      passwordHash: await bcrypt.hash(data.password, 12),
+      role: "admin",
+    });
+    res.status(201).json({ user: { id: user.id, name: user.name, email: user.email, role: user.role, memberId: user.memberId } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/auth/admin-login", authRateLimit, async (req, res, next) => {
+  try {
+    const parsed = z.object({ email: z.string().email(), password: z.string().min(1).max(128) }).safeParse(req.body);
+    if (!parsed.success) return sendError(res, 400, "Enter a valid admin email address and password.");
+    const user = await User.findOne({ email: parsed.data.email.toLowerCase() }).select("+passwordHash");
+    if (!user || user.role !== "admin" || !(await (user as any).verifyPassword(parsed.data.password))) {
+      return sendError(res, 401, "The admin email or password is incorrect.");
+    }
+    if (user.status !== "active") return sendError(res, 403, "This admin account is currently suspended.");
+    setAuthCookie(res, user);
+    res.json({ user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (error) {
     next(error);
   }
@@ -1119,6 +1157,9 @@ router.put("/admin/settings", requireAdmin, async (req, res, next) => {
     }
     if (parsed.data.communityJoinEnabled !== undefined && typeof parsed.data.communityJoinEnabled !== "boolean") {
       return sendError(res, 400, "Community button enabled setting must be a boolean.");
+    }
+    if (parsed.data.adminAccountCreationEnabled !== undefined && typeof parsed.data.adminAccountCreationEnabled !== "boolean") {
+      return sendError(res, 400, "Admin account creation setting must be a boolean.");
     }
     const updates = Object.entries(parsed.data).map(([key, value]) => PlatformSettings.findOneAndUpdate(
       { key }, { value }, { upsert: true, new: true, runValidators: true },

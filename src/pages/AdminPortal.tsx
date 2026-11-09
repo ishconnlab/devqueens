@@ -436,15 +436,20 @@ function SettingsPage() {
   const [text, setText] = useState("{}"); const [error, setError] = useState(""); const [notice, setNotice] = useState("");
   const [communityUrl, setCommunityUrl] = useState("");
   const [communityEnabled, setCommunityEnabled] = useState(true);
+  const [adminAccountCreationEnabled, setAdminAccountCreationEnabled] = useState(true);
   const [communityLoading, setCommunityLoading] = useState(true);
   const [communityBusy, setCommunityBusy] = useState(false);
   const [communityError, setCommunityError] = useState("");
   const [communityNotice, setCommunityNotice] = useState("");
   useEffect(() => {
-    api<{ settings: Record<string, unknown> }>("/admin/settings")
-      .then((result) => setText(JSON.stringify(result.settings, null, 2)))
+    api<{ settings: Record<string, unknown> }>('/admin/settings')
+      .then((result) => {
+        setText(JSON.stringify(result.settings, null, 2));
+        const adminSetting = result.settings.adminAccountCreationEnabled;
+        if (typeof adminSetting === 'boolean') setAdminAccountCreationEnabled(adminSetting);
+      })
       .catch((cause) => setError(cause.message));
-    api<{ url: string; enabled: boolean }>("/community-link")
+    api<{ url: string; enabled: boolean }>('/community-link')
       .then((result) => { setCommunityUrl(result.url); setCommunityEnabled(result.enabled); })
       .catch((cause) => setCommunityError(cause.message))
       .finally(() => setCommunityLoading(false));
@@ -452,11 +457,20 @@ function SettingsPage() {
   const saveCommunity = async (event: React.FormEvent) => {
     event.preventDefault(); setCommunityError(""); setCommunityNotice(""); setCommunityBusy(true);
     try {
-      await api("/admin/community-link", { method: "PUT", body: { url: communityUrl, enabled: communityEnabled } });
-      setCommunityNotice("Community button settings saved.");
+      await api('/admin/community-link', { method: 'PUT', body: { url: communityUrl, enabled: communityEnabled } });
+      setCommunityNotice('Community button settings saved.');
     } catch (cause) {
-      setCommunityError(cause instanceof Error ? cause.message : "Community button settings could not be saved.");
+      setCommunityError(cause instanceof Error ? cause.message : 'Community button settings could not be saved.');
     } finally { setCommunityBusy(false); }
+  };
+  const saveAdminAccountCreation = async (event: React.FormEvent) => {
+    event.preventDefault(); setError(''); setNotice('');
+    try {
+      await api('/admin/settings', { method: 'PUT', body: { adminAccountCreationEnabled } });
+      setNotice('Admin account creation setting saved.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'The admin account creation setting could not be saved.');
+    }
   };
   const save = async (event: React.FormEvent) => {
     event.preventDefault(); setError(""); setNotice("");
@@ -483,10 +497,24 @@ function SettingsPage() {
         </form>
       )}
     </section>
+    <section className="mb-6 max-w-3xl rounded-xl border border-orange-100 bg-white p-5">
+      <h2 className="font-display text-lg font-bold text-stone-900">Admin access controls</h2>
+      <p className="mt-1 text-sm text-stone-500">Allow or block admin account creation from authenticated administrators. Public member registration remains independent.</p>
+      <form onSubmit={saveAdminAccountCreation} className="mt-4 space-y-4">
+        <label className="flex items-center gap-3 text-sm font-medium text-stone-700">
+          <input type="checkbox" checked={adminAccountCreationEnabled} onChange={(event) => setAdminAccountCreationEnabled(event.target.checked)} className="h-4 w-4 accent-[#34295d]" />
+          Enable admin account creation
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <button className="btn-brand"><Save size={15} /> Save admin access</button>
+          {adminAccountCreationEnabled && <Link to="/admin/register" className="btn-outline-brand">Create admin account</Link>}
+        </div>
+      </form>
+    </section>
     {error && <p role="alert" className="notice-error mb-4">{error}</p>}{notice && <p role="status" className="notice-success mb-4">{notice}</p>}
     <form onSubmit={save} className="max-w-3xl rounded-xl border border-orange-100 bg-white p-5">
       <label className="form-label">Other platform settings<textarea value={text} onChange={(e) => setText(e.target.value)} className="form-input mt-1 min-h-72 font-mono text-xs" /></label>
-      <p className="mt-2 text-xs text-stone-400">Example keys include contactEmail, registrationOpen, publicAnnouncement and socialLinks.</p>
+      <p className="mt-2 text-xs text-stone-400">Example keys include contactEmail, registrationOpen, publicAnnouncement, socialLinks and adminAccountCreationEnabled.</p>
       <button className="btn-brand mt-4"><Save size={15} /> Save settings</button>
     </form>
   </>;
@@ -518,7 +546,7 @@ export default function AdminPortal() {
   useEffect(() => { updateSeo({ title: "Administration | DevQueens", description: "DevQueens platform administration.", noIndex: true }); }, []);
   if (loading) return <PageLoader label="Opening administration" />;
   if (error) return <div className="grid min-h-screen place-items-center p-5"><div className="max-w-md rounded-xl border border-red-100 bg-white p-6 text-center"><h1 className="font-display text-xl font-bold">Administration service unavailable</h1><p role="alert" className="mt-2 text-sm text-stone-500">{error}</p><button onClick={() => window.location.reload()} className="btn-brand mt-5">Try again</button></div></div>;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/admin/login" replace />;
   if (user.role !== "admin") return <Navigate to="/portal" replace />;
   return <PlatformShell admin><Routes><Route path="*" element={<AdminContent />} /></Routes></PlatformShell>;
 }

@@ -7,6 +7,8 @@ import PageLoader from "./components/devqueens/PageLoader.tsx";
 
 const Index = lazy(() => import("./pages/Index.tsx"));
 const AuthPage = lazy(() => import("./pages/AuthPage.tsx"));
+const AdminLoginPage = lazy(() => import("./pages/AdminAuthPage.tsx").then((module) => ({ default: module.AdminLoginPage })));
+const AdminRegistrationPage = lazy(() => import("./pages/AdminAuthPage.tsx").then((module) => ({ default: module.AdminRegistrationPage })));
 const MemberPortal = lazy(() => import("./pages/MemberPortal.tsx"));
 const AdminPortal = lazy(() => import("./pages/AdminPortal.tsx"));
 const CourseWorkspace = lazy(() => import("./pages/CoursePages.tsx").then((module) => ({ default: module.CourseWorkspace })));
@@ -20,6 +22,8 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<AuthPage mode="login" />} />
           <Route path="/register" element={<AuthPage mode="register" />} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin/register" element={<AdminRegistrationPage />} />
           <Route path="/portal/*" element={<MemberPortal />} />
           <Route path="/admin/*" element={<AdminPortal />} />
           <Route path="/courses/:slug" element={<CourseWorkspace />} />

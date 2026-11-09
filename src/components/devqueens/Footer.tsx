@@ -1,5 +1,5 @@
-import { Linkedin, MessageCircle, Globe, ArrowUp, Mail } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { ArrowUp, Globe, LockKeyhole, Linkedin, Mail, MessageCircle } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import DevQueensLogo, { IshConnectLink } from "./DevQueensLogo";
 import CommunityJoinButton from "./CommunityJoinButton";
 
@@ -65,6 +65,14 @@ export default function Footer() {
               <IshConnectLink className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-white/80 transition hover:border-white/40 hover:text-white">
                 <Mail size={13} /> IshConnect
               </IshConnectLink>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link to="/login" className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-white/80 transition hover:border-white/40 hover:text-white">
+                <LockKeyhole size={13} /> Login
+              </Link>
+              <Link to="/register" className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-white/80 transition hover:border-white/40 hover:text-white">
+                <LockKeyhole size={13} /> Register
+              </Link>
             </div>
             <button onClick={scrollToTop} className="mt-4 flex items-center gap-1.5 text-xs text-[hsl(var(--background)/0.4)] hover:text-[hsl(var(--background))] transition-colors duration-300">
               Back to top <ArrowUp size={11} />

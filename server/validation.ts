@@ -78,6 +78,12 @@ export const registrationSchema = z.object({
   }),
 });
 
+export const adminRegistrationSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  email: z.string().trim().email().max(254),
+  password: z.string().min(10).max(128).regex(/[a-z]/).regex(/[A-Z]/).regex(/[0-9]/),
+});
+
 export const profileSchema = z.object({
   name: z.string().trim().min(2).max(100).optional(),
   profile: z.object({

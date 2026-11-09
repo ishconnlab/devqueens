@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { gradeObjectiveAnswers } from "./assessment.js";
-import { chatMessageSchema, contentSchema, courseSchema, registrationSchema, socialCommentSchema, socialPostSchema } from "./validation.js";
+import { adminRegistrationSchema, chatMessageSchema, contentSchema, courseSchema, registrationSchema, socialCommentSchema, socialPostSchema } from "./validation.js";
 
 const validCourse = {
   title: "Foundations of Web Development",
@@ -59,6 +59,17 @@ describe("registration and published content validation", () => {
   it("requires a strong password before registration", () => {
     expect(registrationSchema.safeParse({ name: "Amina N.", email: "amina@example.org", password: "simplepass", memberDetails }).success).toBe(false);
     expect(registrationSchema.safeParse({ name: "Amina N.", email: "amina@example.org", password: "SecurePass123", memberDetails }).success).toBe(true);
+  });
+
+  it("validates admin accounts independently from member registration details", () => {
+    expect(adminRegistrationSchema.safeParse({ name: "Admin User", email: "admin@example.org", password: "SecurePass123" }).success).toBe(true);
+    expect(adminRegistrationSchema.safeParse({ name: "A", email: "bad", password: "weak" }).success).toBe(false);
+    expect(adminRegistrationSchema.safeParse({
+      name: "Member User",
+      email: "member@example.org",
+      password: "SecurePass123",
+      memberDetails,
+    }).success).toBe(true);
   });
 
   it("requires valid private member details at registration", () => {

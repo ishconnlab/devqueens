@@ -33,7 +33,7 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
       noIndex: true,
     });
   }, [isRegister]);
-  const [mobileStep, setMobileStep] = useState(0);
+  const [registrationStep, setRegistrationStep] = useState(0);
   const authSchema = z.object({
     name: z.string().trim().max(100).optional(),
     email: z.string().trim().email("Enter a valid email address.").max(254),
@@ -86,7 +86,7 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
       ["name", "email"],
       ["country", "ageRange", "institutionType", "institutionName", "district"],
     ];
-    if (await trigger(fieldsByStep[mobileStep])) setMobileStep((step) => step + 1);
+    if (await trigger(fieldsByStep[registrationStep])) setRegistrationStep((step) => step + 1);
   };
 
   return (
@@ -143,16 +143,16 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
 
           <form onSubmit={submit} className="flex flex-col gap-4">
             {serviceError && <p role="alert" className="notice-error">{serviceError}</p>}
-            {isRegister && <div className="mb-5 sm:hidden">
+            {isRegister && <div className="mb-1">
               <div className="mb-2 flex items-center justify-between text-xs font-semibold text-[#716a78]">
-                <span>Step {mobileStep + 1} of 3</span>
-                <span>{["Your account", "About you", "Secure account"][mobileStep]}</span>
+                <span>Step {registrationStep + 1} of 3</span>
+                <span>{["Your account", "About you", "Secure account"][registrationStep]}</span>
               </div>
               <div className="flex gap-1.5" aria-hidden="true">
-                {[0, 1, 2].map((step) => <span key={step} className={`h-1.5 flex-1 rounded-full ${step <= mobileStep ? "bg-[#e5684f]" : "bg-[#eee8e0]"}`} />)}
+                {[0, 1, 2].map((step) => <span key={step} className={`h-1.5 flex-1 rounded-full ${step <= registrationStep ? "bg-[#e5684f]" : "bg-[#eee8e0]"}`} />)}
               </div>
             </div>}
-            <div className={isRegister && mobileStep !== 0 ? "hidden sm:flex sm:flex-col sm:gap-4" : "flex flex-col gap-4"}>
+            <div className={isRegister && registrationStep !== 0 ? "hidden" : "flex flex-col gap-4"}>
             {isRegister && <label className="form-label">
               Full name
               <input {...field("name")} autoComplete="name" className="form-input" placeholder="Your name" aria-invalid={Boolean(errors.name)} />
@@ -165,7 +165,7 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
             </label>
             </div>
 
-            {isRegister && <div className={mobileStep === 1 ? "flex flex-col gap-4" : "hidden sm:flex sm:flex-col sm:gap-4"}>
+            {isRegister && <div className={registrationStep === 1 ? "flex flex-col gap-4" : "hidden"}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="form-label">
                   Country
@@ -205,21 +205,21 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
               <p className="text-[11px] leading-5 text-[#8a8290]">We collect an age range, not your date of birth. These details are for your DevQueens account and are not shown on your public member card.</p>
             </div>}
 
-            <div className={isRegister && mobileStep !== 2 ? "hidden sm:flex sm:flex-col sm:gap-4" : "flex flex-col gap-4"}>
+            <div className={isRegister && registrationStep !== 2 ? "hidden" : "flex flex-col gap-4"}>
             <label className="form-label">
               Password
               <input {...field("password")} type="password" autoComplete={isRegister ? "new-password" : "current-password"} className="form-input" placeholder={isRegister ? "At least 10 characters, including a number" : "Your password"} aria-invalid={Boolean(errors.password)} />
               {errors.password && <span className="field-error">{errors.password.message}</span>}
             </label>
             {errors.root?.serverError && <p role="alert" className="notice-error">{errors.root.serverError.message}</p>}
-            <button disabled={isSubmitting} className={`group ${isRegister ? "hidden sm:inline-flex" : "inline-flex"} min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#34295d] px-5 text-sm font-semibold text-white transition hover:bg-[#493b7d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#34295d] disabled:cursor-not-allowed disabled:opacity-60`}>
+            {!isRegister && <button disabled={isSubmitting} className="group inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#34295d] px-5 text-sm font-semibold text-white transition hover:bg-[#493b7d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#34295d] disabled:cursor-not-allowed disabled:opacity-60">
               {isSubmitting ? "Please wait…" : isRegister ? "Create my account" : "Sign in"}
               {!isSubmitting && <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />}
-            </button>
+            </button>}
             </div>
-            {isRegister && <div className="flex gap-3 sm:hidden">
-              {mobileStep > 0 && <button type="button" onClick={() => setMobileStep((step) => step - 1)} className="min-h-12 flex-1 rounded-xl border border-[#e8dfd5] bg-white px-4 text-sm font-semibold text-[#51447e] transition hover:border-[#b9acd9]">Back</button>}
-              {mobileStep < 2
+            {isRegister && <div className="flex gap-3">
+              {registrationStep > 0 && <button type="button" onClick={() => setRegistrationStep((step) => step - 1)} className="min-h-12 flex-1 rounded-xl border border-[#e8dfd5] bg-white px-4 text-sm font-semibold text-[#51447e] transition hover:border-[#b9acd9]">Back</button>}
+              {registrationStep < 2
                 ? <button type="button" onClick={goToNextStep} className="group inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#34295d] px-5 text-sm font-semibold text-white transition hover:bg-[#493b7d]">
                   Continue <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
                 </button>
