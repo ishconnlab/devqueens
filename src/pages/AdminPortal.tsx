@@ -8,6 +8,7 @@ import { EmptyState, PageHeading, PlatformShell } from "@/components/platform/Pl
 import { AdminInboxPage } from "@/pages/InboxPages";
 import PageLoader from "@/components/devqueens/PageLoader";
 import { updateSeo } from "@/lib/seo";
+import AdminLoginPage from "@/pages/AdminAuthPage";
 
 type CourseForm = {
   title: string; slug: string; description: string; coverImage: string; level: "Beginner" | "Intermediate" | "Advanced";
@@ -434,6 +435,12 @@ function ReportsPage() {
 
 function SettingsPage() {
   const [text, setText] = useState("{}"); const [error, setError] = useState(""); const [notice, setNotice] = useState("");
+  const [adminName, setAdminName] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminCreateError, setAdminCreateError] = useState("");
+  const [adminCreateNotice, setAdminCreateNotice] = useState("");
+  const [adminCreateBusy, setAdminCreateBusy] = useState(false);
   const [communityUrl, setCommunityUrl] = useState("");
   const [communityEnabled, setCommunityEnabled] = useState(true);
   const [adminAccountCreationEnabled, setAdminAccountCreationEnabled] = useState(true);
@@ -472,6 +479,23 @@ function SettingsPage() {
       setError(cause instanceof Error ? cause.message : 'The admin account creation setting could not be saved.');
     }
   };
+  const createAdminAccount = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setAdminCreateError("");
+    setAdminCreateNotice("");
+    setAdminCreateBusy(true);
+    try {
+      await api("/auth/admin-create", { method: "POST", body: { name: adminName, email: adminEmail, password: adminPassword } });
+      setAdminName("");
+      setAdminEmail("");
+      setAdminPassword("");
+      setAdminCreateNotice("Admin account created. The new administrator can sign in at /admin.");
+    } catch (cause) {
+      setAdminCreateError(cause instanceof Error ? cause.message : "The admin account could not be created.");
+    } finally {
+      setAdminCreateBusy(false);
+    }
+  };
   const save = async (event: React.FormEvent) => {
     event.preventDefault(); setError(""); setNotice("");
     try { const value = JSON.parse(text); if (!value || Array.isArray(value) || typeof value !== "object") throw new Error("Settings must be a JSON object."); await api("/admin/settings", { method: "PUT", body: value }); setNotice("Platform settings saved."); }
@@ -505,11 +529,18 @@ function SettingsPage() {
           <input type="checkbox" checked={adminAccountCreationEnabled} onChange={(event) => setAdminAccountCreationEnabled(event.target.checked)} className="h-4 w-4 accent-[#34295d]" />
           Enable admin account creation
         </label>
-        <div className="flex flex-wrap gap-2">
-          <button className="btn-brand"><Save size={15} /> Save admin access</button>
-          {adminAccountCreationEnabled && <Link to="/admin/register" className="btn-outline-brand">Create admin account</Link>}
-        </div>
+        <button className="btn-brand"><Save size={15} /> Save admin access</button>
       </form>
+      {adminAccountCreationEnabled && <form onSubmit={createAdminAccount} className="mt-5 grid gap-3 border-t border-stone-100 pt-5 sm:grid-cols-2">
+        <h3 className="font-display font-bold sm:col-span-2">Create an admin account</h3>
+        <Field label="Full name"><input required minLength={2} maxLength={100} autoComplete="name" value={adminName} onChange={(event) => setAdminName(event.target.value)} className="form-input" /></Field>
+        <Field label="Admin email"><input required type="email" maxLength={254} autoComplete="email" value={adminEmail} onChange={(event) => setAdminEmail(event.target.value)} className="form-input" /></Field>
+        <Field label="Password"><input required type="password" minLength={10} maxLength={128} pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{10,128}" autoComplete="new-password" value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} className="form-input" /></Field>
+        <p className="self-end text-xs text-stone-500">At least 10 characters, including uppercase, lowercase, and a number.</p>
+        {adminCreateError && <p role="alert" className="notice-error sm:col-span-2">{adminCreateError}</p>}
+        {adminCreateNotice && <p role="status" className="notice-success sm:col-span-2">{adminCreateNotice}</p>}
+        <button disabled={adminCreateBusy} className="btn-brand disabled:opacity-60 sm:col-span-2">{adminCreateBusy ? "Creating account…" : "Create admin account"}</button>
+      </form>}
     </section>
     {error && <p role="alert" className="notice-error mb-4">{error}</p>}{notice && <p role="status" className="notice-success mb-4">{notice}</p>}
     <form onSubmit={save} className="max-w-3xl rounded-xl border border-orange-100 bg-white p-5">
@@ -544,9 +575,9 @@ function AdminContent() {
 export default function AdminPortal() {
   const { user, loading, error } = useAuth();
   useEffect(() => { updateSeo({ title: "Administration | DevQueens", description: "DevQueens platform administration.", noIndex: true }); }, []);
-  if (loading) return <PageLoader label="Opening administration" />;
+  if (loading && user) return <PageLoader label="Verifying administrator session" />;
   if (error) return <div className="grid min-h-screen place-items-center p-5"><div className="max-w-md rounded-xl border border-red-100 bg-white p-6 text-center"><h1 className="font-display text-xl font-bold">Administration service unavailable</h1><p role="alert" className="mt-2 text-sm text-stone-500">{error}</p><button onClick={() => window.location.reload()} className="btn-brand mt-5">Try again</button></div></div>;
-  if (!user) return <Navigate to="/admin/login" replace />;
+  if (!user) return <AdminLoginPage />;
   if (user.role !== "admin") return <Navigate to="/portal" replace />;
   return <PlatformShell admin><Routes><Route path="*" element={<AdminContent />} /></Routes></PlatformShell>;
 }

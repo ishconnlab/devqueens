@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 
 export interface SessionUser {
@@ -42,30 +43,58 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function needsSession(pathname: string) {
+  return ["/login", "/register", "/admin", "/portal", "/courses", "/members"].some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
+  const authRequestId = useRef(0);
+  const sessionResolved = useRef(false);
   const [user, setUser] = useState<SessionUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => needsSession(pathname));
   const [error, setError] = useState("");
 
   const refresh = useCallback(async () => {
+    const requestId = ++authRequestId.current;
+    setLoading(true);
     setError("");
     try {
       const result = await api<{ user: SessionUser }>("/auth/me");
-      setUser(result.user);
+      if (requestId === authRequestId.current) setUser(result.user);
     } catch (cause) {
-      if (cause instanceof ApiError && cause.status === 401) {
-        setUser(null);
-      } else {
-        setError(cause instanceof Error ? cause.message : "The account service is unavailable.");
+      if (requestId === authRequestId.current) {
+        if (cause instanceof ApiError && cause.status === 401) {
+          setUser(null);
+        } else {
+          setError(cause instanceof Error ? cause.message : "The account service is unavailable.");
+        }
       }
     } finally {
-      setLoading(false);
+      if (requestId === authRequestId.current) {
+        sessionResolved.current = true;
+        setLoading(false);
+      }
     }
   }, []);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    if (needsSession(pathname) && !sessionResolved.current) {
+      void refresh();
+    } else if (!needsSession(pathname)) {
+      authRequestId.current += 1;
+      sessionResolved.current = false;
+      setLoading(false);
+      setError("");
+    }
+  }, [pathname, refresh]);
 
   const login = useCallback(async (email: string, password: string) => {
+    authRequestId.current += 1;
+    sessionResolved.current = true;
+    setLoading(false);
     const result = await api<{ user: SessionUser }>("/auth/login", { method: "POST", body: { email, password } });
     setUser(result.user);
     setError("");
@@ -73,6 +102,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const adminLogin = useCallback(async (email: string, password: string) => {
+    authRequestId.current += 1;
+    sessionResolved.current = true;
+    setLoading(false);
     const result = await api<{ user: SessionUser }>("/auth/admin-login", { method: "POST", body: { email, password } });
     setUser(result.user);
     setError("");
@@ -86,6 +118,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     district: string;
     ageRange: "13-15" | "16-17" | "18-24" | "25+";
   }) => {
+    authRequestId.current += 1;
+    sessionResolved.current = true;
+    setLoading(false);
     const result = await api<{ user: SessionUser }>("/auth/register", { method: "POST", body: { name, email, password, memberDetails } });
     setUser(result.user);
     setError("");

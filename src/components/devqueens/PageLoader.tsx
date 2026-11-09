@@ -1,6 +1,14 @@
+import { useEffect, useState } from "react";
 import DevQueensLogo from "@/components/devqueens/DevQueensLogo";
 
 export default function PageLoader({ label = "Loading your next chapter" }: { label?: string }) {
+  const [serviceMayBeWaking, setServiceMayBeWaking] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setServiceMayBeWaking(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
     <main className="dq-loading-screen" role="status" aria-live="polite">
       <div className="dq-loader-orbit dq-loader-orbit-one" aria-hidden="true" />
@@ -12,6 +20,7 @@ export default function PageLoader({ label = "Loading your next chapter" }: { la
         <p className="mt-5 font-display text-2xl font-bold tracking-tight text-[#34295d]">DevQueens</p>
         <p className="mt-2 text-sm text-[#716a78]">{label}</p>
         <div className="dq-loader-track" aria-hidden="true"><span /></div>
+        {serviceMayBeWaking && <p className="mt-3 max-w-xs text-xs leading-5 text-[#716a78]">The service may be waking after a period of inactivity. On Render’s free plan, the first request can take up to a minute.</p>}
         <span className="sr-only">Please wait</span>
       </div>
     </main>
