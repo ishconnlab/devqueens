@@ -1,3 +1,7 @@
 User-agent: *
 Allow: /
-Sitemap: https://devqueenstech.vercel.app/sitemap.xml
+Disallow: /admin
+Disallow: /portal
+Disallow: /api
+
+Sitemap: https://devqueens.ishconnect.rw/sitemap.xml

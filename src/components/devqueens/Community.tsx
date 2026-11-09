@@ -1,96 +1,56 @@
-import { MessageCircle, Users, HeartHandshake, Code, ArrowRight } from "lucide-react";
+import { ArrowRight, Code2, Heart, MessageCircle, UsersRound } from "lucide-react";
 import { FadeInView } from "./TextReveal";
+import CommunityJoinButton from "./CommunityJoinButton";
 
-const features = [
-  {
-    icon: MessageCircle,
-    title: "WhatsApp Community",
-    desc: "Daily conversations, mentorship, and collaboration with 2,400+ African women in tech.",
-    action: "Join on WhatsApp",
-    url: "https://chat.whatsapp.com/BIyl1UovWjzLwcGw6vtcUJ",
-  },
-  {
-    icon: HeartHandshake,
-    title: "Mentorship Hub",
-    desc: "One-on-one guidance from 45+ experienced professionals across all tech fields.",
-  },
-  {
-    icon: Code,
-    title: "Coding Challenges",
-    desc: "Weekly coding challenges, hackathons, and project-based learning to sharpen your skills.",
-  },
-  {
-    icon: Users,
-    title: "Women in Tech Stories",
-    desc: "Real stories from African women building successful careers in technology across the continent.",
-  },
-];
-
-const events = [
-  { title: "Code For Impact 2026", date: "April 1–30, 2026", tag: "Hackathon" },
-  { title: "Orientation Session", date: "March 21, 2026", tag: "Workshop" },
-  { title: "Mentorship Applications", date: "Opening soon", tag: "Mentorship" },
+const moments = [
+  { icon: Code2, number: "01", title: "Try something new", text: "Take a first step into a field you have always wondered about.", color: "bg-[#f4c744]" },
+  { icon: UsersRound, number: "02", title: "Learn with others", text: "Share questions, encouragement, and ideas with the community.", color: "bg-[#e9dff5]" },
+  { icon: Heart, number: "03", title: "Keep your momentum", text: "Build confidence one small, consistent step at a time.", color: "bg-[#f7ddd3]" },
 ];
 
 export default function Community() {
   return (
-    <section id="community" className="section-padding bg-[hsl(var(--secondary))]">
+    <section id="community" className="bg-white py-20 sm:py-28">
       <div className="section-container">
-        <FadeInView>
-          <div className="section-header">
-            <p className="label-sm mb-4">Community</p>
-            <h2 className="heading-lg">Learn Together. Grow Together.</h2>
-            <p className="body-lg mt-3">A thriving ecosystem of African women in technology. Connect, collaborate, and build your future.</p>
-          </div>
-        </FadeInView>
+        <div className="grid gap-10 lg:grid-cols-[.9fr_1.1fr] lg:items-end">
+          <FadeInView>
+            <p className="mb-4 text-[11px] font-bold uppercase tracking-[.18em] text-[#e5684f]">Learning in community</p>
+            <h2 className="max-w-lg font-display text-4xl font-bold leading-[1.04] tracking-[-.045em] text-[#28213f] sm:text-5xl">There’s more than one way to grow.</h2>
+          </FadeInView>
+          <FadeInView delay={0.1}>
+            <p className="max-w-xl text-base leading-7 text-[#625e6b]">
+              Learning feels different when you can share the questions, ideas, and small wins along the way. DevQueens brings learning paths and community together so you can keep exploring at your own pace.
+            </p>
+          </FadeInView>
+        </div>
 
-        <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {features.map((item, i) => (
-            <FadeInView key={item.title} delay={i * 0.06}>
-              <div className="card card-hover h-full flex flex-col">
-                <div className="w-9 h-9 bg-[hsl(var(--foreground))] flex items-center justify-center mb-4">
-                  <item.icon size={16} className="text-[hsl(var(--background))]" />
+        <div className="mt-12 grid gap-4 md:grid-cols-3">
+          {moments.map((item, index) => (
+            <FadeInView key={item.number} delay={index * 0.07}>
+              <article className="group h-full rounded-2xl border border-[#eee8e0] bg-[#fbf9f5] p-6 transition duration-300 hover:-translate-y-1 hover:border-[#d8cce8] hover:shadow-xl hover:shadow-[#34295d]/[.06] sm:p-7">
+                <div className="flex items-center justify-between">
+                  <span className={`grid h-11 w-11 place-items-center rounded-2xl text-[#34295d] ${item.color}`}><item.icon size={19} /></span>
+                  <span className="font-mono text-xs text-[#aaa2ad]">{item.number}</span>
                 </div>
-                <h3 className="text-base font-display font-semibold text-[hsl(var(--foreground))] mb-1.5">{item.title}</h3>
-                <p className="body-md flex-1 mb-4">{item.desc}</p>
-                {"url" in item && item.url ? (
-                  <a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-[hsl(var(--foreground))] hover:opacity-60 transition-opacity">
-                    {item.action} <ArrowRight size={11} />
-                  </a>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-sm font-medium text-[hsl(var(--muted-foreground))]">
-                    {item.action || "Coming soon"} <ArrowRight size={11} />
-                  </span>
-                )}
-              </div>
+                <h3 className="mt-8 font-display text-xl font-bold tracking-tight text-[#34295d]">{item.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-[#77717d]">{item.text}</p>
+              </article>
             </FadeInView>
           ))}
         </div>
 
-        <FadeInView delay={0.3}>
-          <div className="mt-10 p-8 md:p-10 bg-[hsl(var(--foreground))] text-[hsl(var(--background))]">
-            <div className="grid md:grid-cols-2 gap-6 items-center">
-              <div>
-                <p className="label-sm text-[hsl(var(--background)/0.5)] mb-2">Upcoming Events</p>
-                <h3 className="heading-md">Join the Movement</h3>
-                <p className="text-sm text-[hsl(var(--background)/0.5)] mt-1 max-w-sm">
-                  Ready to start your journey? Join 2,400+ African women already building the future of technology.
-                </p>
+        <FadeInView delay={0.18}>
+          <div className="relative mt-6 overflow-hidden rounded-[1.75rem] bg-[#f3ede5] p-6 sm:p-9 lg:p-10">
+            <div aria-hidden="true" className="absolute -right-20 -top-32 h-72 w-72 rounded-full border-[42px] border-[#e9dff5]" />
+            <div className="relative grid items-center gap-8 md:grid-cols-[1fr_auto]">
+              <div className="max-w-xl">
+                <p className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.16em] text-[#766a91]"><MessageCircle size={14} /> Stay connected</p>
+                <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-[#34295d] sm:text-3xl">Bring your questions. Find your people.</h3>
+                <p className="mt-2 text-sm leading-6 text-[#77717d]">Join the DevQueens WhatsApp community to connect with other learners and keep up with conversations.</p>
               </div>
-              <div className="flex flex-col gap-2">
-                {events.map((e) => (
-                  <div key={e.title} className="flex items-center justify-between py-2 border-b border-[hsl(var(--background)/0.1)] last:border-0">
-                    <div>
-                      <p className="text-sm font-medium text-[hsl(var(--background))]">{e.title}</p>
-                      <p className="text-xs text-[hsl(var(--background)/0.4)]">{e.date}</p>
-                    </div>
-                    <span className="tag text-[10px] bg-[hsl(var(--background)/0.1)] text-[hsl(var(--background)/0.6)]">{e.tag}</span>
-                  </div>
-                ))}
-                <a href="https://chat.whatsapp.com/BIyl1UovWjzLwcGw6vtcUJ" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[hsl(var(--background))] text-[hsl(var(--foreground))] text-sm font-medium mt-2 transition-all duration-300 hover:opacity-85">
-                  Join Free <ArrowRight size={13} />
-                </a>
-              </div>
+              <CommunityJoinButton className="group inline-flex min-h-12 items-center justify-center gap-3 rounded-full bg-[#34295d] px-6 text-sm font-semibold text-white transition hover:bg-[#493b7d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#34295d]">
+                Join the community <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
+              </CommunityJoinButton>
             </div>
           </div>
         </FadeInView>

@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
 
 interface FadeInViewProps {
@@ -9,13 +9,14 @@ interface FadeInViewProps {
 }
 
 export function FadeInView({ children, className = "", delay = 0, direction = "up" }: FadeInViewProps) {
+  const reduceMotion = useReducedMotion();
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, y: direction === "up" ? 15 : 0 }}
+      initial={{ opacity: 0, y: !reduceMotion && direction === "up" ? 15 : 0 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.1 }}
-      transition={{ duration: 0.6, delay, ease: [0.25, 0.1, 0.25, 1] }}
+      transition={{ duration: reduceMotion ? 0 : 0.6, delay: reduceMotion ? 0 : delay, ease: [0.25, 0.1, 0.25, 1] }}
     >
       {children}
     </motion.div>

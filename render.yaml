@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: devqueens-api
+    runtime: node
+    plan: free
+    buildCommand: npm install --include=dev && npm run build:api
+    startCommand: npm run start:api
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_ORIGIN
+        value: https://devqueens.ishconnect.rw
+      - key: APP_URL
+        value: https://devqueens.ishconnect.rw
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false

@@ -1,73 +1,40 @@
-import { Briefcase, GraduationCap, Award, ExternalLink } from "lucide-react";
+import { ArrowUpRight, BriefcaseBusiness, FileUser, GitPullRequest, Presentation } from "lucide-react";
+import { Link } from "react-router-dom";
 import { FadeInView } from "./TextReveal";
 
-const opportunities = [
-  {
-    icon: Briefcase,
-    title: "Software Engineering Intern",
-    company: "IshConnect",
-    type: "Internship",
-    desc: "Gain hands-on experience building real products used across Africa.",
-    url: "https://ishconnect.rw",
-  },
-  {
-    icon: GraduationCap,
-    title: "Women in Tech Scholarship",
-    company: "ALX Africa",
-    type: "Scholarship",
-    desc: "Fully funded scholarship for African women pursuing tech education.",
-  },
-  {
-    icon: Award,
-    title: "Open Source Contributor",
-    company: "Various",
-    type: "Program",
-    desc: "Contribute to impactful open source projects with mentorship support.",
-  },
-  {
-    icon: Briefcase,
-    title: "Tech Fellowship Program",
-    company: "Various Partners",
-    type: "Fellowship",
-    desc: "Paid fellowship for African women to gain industry experience.",
-  },
+const nextSteps = [
+  { icon: Presentation, title: "Show what you can do", detail: "Build a portfolio around projects you’ve worked on." },
+  { icon: FileUser, title: "Tell your story", detail: "Practice shaping your CV and professional profile." },
+  { icon: GitPullRequest, title: "Contribute with others", detail: "Explore open-source work and collaborative tools." },
+  { icon: BriefcaseBusiness, title: "Prepare for what’s next", detail: "Build confidence for interviews and new opportunities." },
 ];
 
 export default function Opportunities() {
   return (
-    <section id="opportunities" className="section-padding bg-[hsl(var(--background))]">
+    <section id="opportunities" className="bg-[#fbf7f1] py-20 sm:py-28">
       <div className="section-container">
-        <FadeInView>
-          <div className="section-header">
-            <p className="label-sm mb-4">Opportunities</p>
-            <h2 className="heading-lg">Launch Your Career</h2>
-            <p className="body-lg mt-3">Internships, scholarships, and programs designed to accelerate your growth in tech.</p>
+        <div className="grid gap-10 lg:grid-cols-[.8fr_1.2fr] lg:items-start">
+          <FadeInView>
+            <p className="mb-4 text-[11px] font-bold uppercase tracking-[.18em] text-[#e5684f]">Beyond the lessons</p>
+            <h2 className="max-w-md font-display text-4xl font-bold leading-[1.04] tracking-[-.045em] text-[#28213f] sm:text-5xl">Skills are a beginning.</h2>
+            <p className="mt-5 max-w-md text-sm leading-7 text-[#77717d]">
+              The Career & Professional Growth path includes practical ways to prepare for your next step. These are skills to build, not promised jobs or placements.
+            </p>
+            <Link to="/#paths" className="group mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#51447e]">
+              Explore the learning paths <ArrowUpRight size={15} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </Link>
+          </FadeInView>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {nextSteps.map((step, index) => (
+              <FadeInView key={step.title} delay={index * 0.06}>
+                <article className="h-full rounded-2xl border border-[#e8dfd5] bg-white p-5 sm:p-6">
+                  <step.icon size={20} className="text-[#e5684f]" />
+                  <h3 className="mt-5 font-display text-base font-bold text-[#34295d]">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[#77717d]">{step.detail}</p>
+                </article>
+              </FadeInView>
+            ))}
           </div>
-        </FadeInView>
-
-        <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {opportunities.map((opp, i) => (
-            <FadeInView key={opp.title} delay={i * 0.08}>
-              <div className="card card-hover h-full flex flex-col group">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-9 h-9 bg-[hsl(var(--secondary))] flex items-center justify-center group-hover:bg-[hsl(var(--foreground))] transition-colors duration-300">
-                    <opp.icon size={16} className="text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--background))] transition-colors duration-300" />
-                  </div>
-                  <span className="tag text-[10px]">{opp.type}</span>
-                </div>
-                <h3 className="text-base font-display font-semibold text-[hsl(var(--foreground))] mb-0.5">{opp.title}</h3>
-                <p className="text-xs text-[hsl(var(--muted-foreground))] mb-2">{opp.company}</p>
-                <p className="body-md flex-1 mb-4">{opp.desc}</p>
-                {"url" in opp && opp.url ? (
-                  <a href={opp.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-[hsl(var(--foreground))] hover:opacity-60 transition-opacity">
-                    Learn more <ExternalLink size={10} />
-                  </a>
-                ) : (
-                  <span className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Coming soon</span>
-                )}
-              </div>
-            </FadeInView>
-          ))}
         </div>
       </div>
     </section>
