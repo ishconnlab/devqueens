@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 import { Download, ExternalLink, ImageUp, Share2, ShieldCheck, Award, ArrowRight } from "lucide-react";
 import QRCode from "qrcode";
-import { api } from "@/lib/api";
+import { api, apiUrl } from "@/lib/api";
 import { useAuth, type SessionUser } from "@/contexts/AuthContext";
 import { EmptyState, PageHeading, PlatformShell } from "@/components/platform/PlatformShell";
 import { CourseCatalog, CourseWorkspace, LearningHome } from "@/pages/CoursePages";
@@ -124,7 +124,7 @@ function CertificatePage() {
   const download = async (id: string) => {
     setError("");
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL ?? "/api"}/certificates/${id}/pdf`, { credentials: "include" });
+      const response = await fetch(apiUrl(`/certificates/${id}/pdf`), { credentials: "include" });
       if (!response.ok) {
         const body = await response.json().catch(() => null);
         throw new Error(body?.error ?? "Certificate PDF could not be downloaded.");

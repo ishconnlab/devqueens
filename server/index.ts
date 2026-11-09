@@ -4,7 +4,7 @@ import app from "./app.js";
 
 async function start() {
   await mongoose.connect(config.MONGODB_URI);
-  app.listen(config.PORT, () => {
+  app.listen(config.PORT, "0.0.0.0", () => {
     console.info(`DevQueens API listening on port ${config.PORT}`);
   });
 }

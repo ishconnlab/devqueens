@@ -1,4 +1,10 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
+const configuredApiBase = import.meta.env.PROD ? "/api" : import.meta.env.VITE_API_URL ?? "/api";
+const trimmedApiBase = configuredApiBase.replace(/\/+$/, "");
+export const API_BASE = /\/api$/i.test(trimmedApiBase) ? trimmedApiBase : `${trimmedApiBase}/api`;
+
+export function apiUrl(path: string) {
+  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+}
 
 type RequestOptions = Omit<RequestInit, "body"> & { body?: unknown };
 
@@ -14,7 +20,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   if (options.body !== undefined && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...options,
     headers,
     credentials: "include",

@@ -21,6 +21,10 @@ const configSchema = z.object({
 export const config = configSchema.parse(process.env);
 export const isProduction = config.NODE_ENV === "production";
 
+if (isProduction && !process.env.MONGODB_URI?.trim()) {
+  throw new Error("MONGODB_URI is required in production. Set it in the Render service Environment settings to a reachable MongoDB connection string.");
+}
+
 if (isProduction && config.JWT_SECRET.startsWith("development-only")) {
   throw new Error("JWT_SECRET must be set to a secure random value in production.");
 }

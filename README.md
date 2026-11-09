@@ -26,15 +26,15 @@ The Vite development server proxies `/api` requests to `http://127.0.0.1:3001`. 
 
 The repository includes a Render Blueprint at `render.yaml` for the API and a Vercel configuration at `vercel.json` for the SPA, `/api` proxy, and deep-link rewrites. The Vercel rewrite forwards API requests to `https://devqueens.onrender.com`.
 
-1. Create/provision a MongoDB database reachable from Render. Keep its connection string private.
-2. In Render, create a Blueprint from this repository and set the prompted `MONGODB_URI`. The Blueprint generates a secure `JWT_SECRET`; set all three Cloudinary values to enable profile, community, and chat images. The API health check is `/api/health`.
+1. Create/provision a MongoDB database reachable from Render (for example, MongoDB Atlas). Keep its connection string private and allow connections from the Render service.
+2. In Render, create a Blueprint from this repository and set the prompted `MONGODB_URI`. If the service already exists, add `MONGODB_URI` under **Dashboard → service → Environment** and redeploy. The value must be the full MongoDB connection string for the database, not `mongodb://127.0.0.1:27017/...`; production startup now stops immediately with an explicit error if this variable is empty or missing. The Blueprint generates a secure `JWT_SECRET`; set all three Cloudinary values to enable profile, community, and chat images. The API health check is `/api/health`.
 3. Import the repository into Vercel with the repository root as the project root. Use the `dist` output directory and `npm run build:web` build command from `vercel.json`.
 4. Add `devqueens.ishconnect.rw` to the Vercel project’s Domains settings and configure the DNS records shown by Vercel at the domain provider. Vercel handles HTTPS and the `/api/*` rewrite to Render.
 5. In Render, confirm `CLIENT_ORIGIN` and `APP_URL` are exactly `https://devqueens.ishconnect.rw`. If the production domain changes, update those values and the Vercel API destination in `vercel.json`.
 6. Deploy Render before Vercel, then verify `https://devqueens.ishconnect.rw/`, `https://devqueens.onrender.com/api/health`, `/api/health` through the website domain, `/sitemap.xml`, and a nested route such as `/learn/<published-course-slug>`.
 7. To bootstrap the production administrator, temporarily set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in the Render service environment, run `npm run seed:admin` once from the Render Shell, and then remove the seed-only password variable. Never place production credentials in source control.
 
-The web app uses same-origin `/api` requests so the authentication cookie works through the Vercel rewrite. Do not set `VITE_API_URL` to a separate cross-origin host for this deployment. Never commit production credentials or a populated `.env` file.
+The web app uses same-origin `/api` requests so the authentication cookie works through the Vercel rewrite to `https://devqueens.onrender.com/api`. Production builds always use `/api`, even if `VITE_API_URL` is set in the hosting dashboard, and development builds normalize the configured API base to include `/api`. Never commit production credentials or a populated `.env` file.
 
 The API bundle is compiled by the `postinstall` script during dependency installation, so compilation happens in Render's build phase rather than consuming the API's limited runtime memory. The Render Blueprint installs development dependencies with `npm install --include=dev` and starts the compiled server with `npm start`. If configuring the service in the Render Dashboard rather than through the Blueprint, use `npm ci --include=dev` as the build command and `npm start` as the start command. Do not compile the API from the start command.
 
@@ -151,8 +151,8 @@ npm run build
 
 1. Provision MongoDB and a Cloudinary account. Restrict database credentials and Cloudinary secrets to the API service.
 2. Set production `NODE_ENV`, `MONGODB_URI`, a cryptographically random `JWT_SECRET`, exact `CLIENT_ORIGIN`, and `APP_URL`.
-3. Serve the built `dist/` frontend from a static host. Set `VITE_API_URL` at build time to the same-site API URL or a same-origin `/api` reverse-proxy path.
-4. Run `npm run build` to generate the static frontend and `server-dist/` API. Run `npm run start:api` on the API host and route `/api` to it. Keep the frontend and API on the same site so the `SameSite=Lax` session cookie is sent.
+3. Serve the built `dist/` frontend at `https://devqueens.ishconnect.rw`. Production frontend requests use the same-origin `/api` path, which must be reverse-proxied to `https://devqueens.onrender.com/api` as configured in `vercel.json`.
+4. Run `npm run build` to generate the static frontend and `server-dist/` API. Run `npm run start:api` on the API host and configure `CLIENT_ORIGIN=https://devqueens.ishconnect.rw` and `APP_URL=https://devqueens.ishconnect.rw`. Keep the browser-facing API on the frontend origin so the `SameSite=Lax` session cookie is sent.
 5. Enable HTTPS. Production cookies are marked `Secure`; do not expose `.env` or serve environment files publicly.
 6. Configure Cloudinary and certificate signatory variables. Run the initial `npm run seed:admin` command from the built application with `ADMIN_EMAIL` and `ADMIN_PASSWORD` set.
 
