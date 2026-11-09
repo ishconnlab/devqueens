@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "dev:api": "tsx watch server/index.ts",
-    "start": "node server-dist/index.js",
-    "start:api": "node server-dist/index.js",
+    "start": "npm run start:api",
+    "start:api": "npm run build:api && node server-dist/index.js",
     "seed:admin": "node server-dist/seed-admin.js",
     "build:web": "vite build",
     "build:api": "tsc -p tsconfig.server.build.json",
