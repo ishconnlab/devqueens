@@ -36,7 +36,7 @@ The repository includes a Render Blueprint at `render.yaml` for the API and a Ve
 
 The web app uses same-origin `/api` requests so the authentication cookie works through the Vercel rewrite. Do not set `VITE_API_URL` to a separate cross-origin host for this deployment. Never commit production credentials or a populated `.env` file.
 
-The Render API build command must install development dependencies and build the server bundle (the Blueprint does this with `npm install --include=dev && npm run build:api`). The start command can be `npm run start:api` or `npm start`; both build the API before launching it. If configuring the service in the Render Dashboard rather than through the Blueprint, use `npm ci --include=dev && npm run build:api` as the build command and `npm run start:api` as the start command.
+The API bundle is compiled by the `postinstall` script during dependency installation, so compilation happens in Render's build phase rather than consuming the API's limited runtime memory. The Render Blueprint installs development dependencies with `npm install --include=dev` and starts the compiled server with `npm start`. If configuring the service in the Render Dashboard rather than through the Blueprint, use `npm ci --include=dev` as the build command and `npm start` as the start command. Do not compile the API from the start command.
 
 ### First administrator
 
