@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { ArrowLeft, ArrowRight, BookOpen, Braces, Code2, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Braces, Code2, LockKeyhole, Sparkles } from "lucide-react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import DevQueensLogo from "@/components/devqueens/DevQueensLogo";
 import { useAuth } from "@/contexts/AuthContext";
@@ -124,6 +124,9 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
               <div className="mt-8">
                 <p className="font-mono text-xs text-[#817791]">const nextStep =</p>
                 <p className="mt-1 font-display text-2xl font-bold text-[#34295d]">yours to imagine<span className="text-[#e5684f]">.</span></p>
+                {!isRegister && <Link to="/admin" className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 px-3 py-2 text-xs font-semibold text-[#51447e] transition hover:bg-white hover:text-[#34295d]">
+                  <LockKeyhole size={14} aria-hidden="true" /> Administrator sign in
+                </Link>}
               </div>
             </div>
           </div>
@@ -236,6 +239,9 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
               {isRegister ? "Sign in" : "Join DevQueens"}
             </Link>
           </p>
+          {!isRegister && <Link to="/admin" className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#e8dfd5] bg-[#fbf9f5] px-4 py-3 text-sm font-semibold text-[#51447e] transition hover:border-[#b9acd9] hover:bg-[#f7f3fa] hover:text-[#34295d] sm:hidden">
+            <LockKeyhole size={15} aria-hidden="true" /> Administrator sign in
+          </Link>}
           <p className="mt-5 border-t border-[#eee8e0] pt-4 text-center text-[11px] leading-5 text-[#96909a]">
             DevQueens — An initiative by IshConnect. Please use this learning community respectfully and responsibly.
           </p>
