@@ -1,12 +1,11 @@
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
-import { config } from "./config.js";
+import { config, requireAdminPassword } from "./config.js";
 import { User } from "./models.js";
 
 async function resetAdminPassword() {
-  if (!config.ADMIN_EMAIL || !config.ADMIN_PASSWORD) {
-    throw new Error("Set ADMIN_EMAIL and a new ADMIN_PASSWORD to reset the administrator password.");
-  }
+  if (!config.ADMIN_EMAIL) throw new Error("Set ADMIN_EMAIL to reset the administrator password.");
+  const password = requireAdminPassword();
 
   await mongoose.connect(config.MONGODB_URI);
   const email = config.ADMIN_EMAIL.toLowerCase();
@@ -19,7 +18,7 @@ async function resetAdminPassword() {
     throw new Error("ADMIN_EMAIL belongs to a non-administrator account.");
   }
 
-  user.passwordHash = await bcrypt.hash(config.ADMIN_PASSWORD, 12);
+  user.passwordHash = await bcrypt.hash(password, 12);
   await user.save();
   console.info(`Administrator password reset for ${email}.`);
 }

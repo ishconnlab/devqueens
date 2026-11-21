@@ -50,7 +50,7 @@ The seed command creates the administrator only if the email is unused. It refus
 
 ### Reset an administrator password
 
-Set `ADMIN_EMAIL` and the new `ADMIN_PASSWORD` in `.env`, then run:
+Set `ADMIN_EMAIL` and a new `ADMIN_PASSWORD` of at least 12 characters in `.env`, then run:
 
 ```sh
 npm run reset:admin-password

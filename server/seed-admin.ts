@@ -1,12 +1,11 @@
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
-import { config } from "./config.js";
+import { config, requireAdminPassword } from "./config.js";
 import { User } from "./models.js";
 
 async function seedAdmin() {
-  if (!config.ADMIN_EMAIL || !config.ADMIN_PASSWORD) {
-    throw new Error("Set ADMIN_EMAIL and ADMIN_PASSWORD to create the initial administrator.");
-  }
+  if (!config.ADMIN_EMAIL) throw new Error("Set ADMIN_EMAIL to create the initial administrator.");
+  const password = requireAdminPassword();
   await mongoose.connect(config.MONGODB_URI);
   const email = config.ADMIN_EMAIL.toLowerCase();
   const existing = await User.findOne({ email });
@@ -18,7 +17,7 @@ async function seedAdmin() {
   await User.create({
     name: "DevQueens Administrator",
     email,
-    passwordHash: await bcrypt.hash(config.ADMIN_PASSWORD, 12),
+    passwordHash: await bcrypt.hash(password, 12),
     role: "admin",
     status: "active",
   });
