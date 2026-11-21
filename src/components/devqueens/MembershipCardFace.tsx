@@ -2,31 +2,39 @@ import { useEffect, useState } from "react";
 import type { MembershipCardMember, MembershipCardSettings } from "@/lib/membershipCard";
 import { formatMembershipDate } from "@/lib/membershipCard";
 
+export const membershipCardCircuitPaths = [
+  [[930, 0], [930, 26], [978, 26], [1002, 2]],
+  [[1030, 0], [1030, 16], [1080, 16], [1100, 36], [1150, 36], [1186, 0]],
+  [[1200, 80], [1168, 80], [1148, 60], [1115, 60], [1096, 42]],
+  [[1200, 138], [1176, 138], [1150, 112], [1150, 76]],
+  [[0, 610], [34, 610], [60, 636], [120, 636], [142, 658]],
+  [[0, 690], [44, 690], [68, 714], [132, 714], [155, 737]],
+  [[78, 757], [78, 729], [98, 708], [98, 670], [126, 642]],
+  [[0, 558], [18, 558], [36, 576], [56, 576]],
+] as const;
+
 function BrandLogo({ settings }: { settings: MembershipCardSettings }) {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => setFailed(false), [settings.logoUrl]);
 
-  if (!settings.logoUrl || failed) {
-    return (
-      <span
-        aria-hidden="true"
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-display text-xs font-bold sm:h-10 sm:w-10"
-        style={{ backgroundColor: settings.secondaryColor, color: settings.highlightColor }}
-      >
-        DQ
-      </span>
-    );
-  }
-
   return (
-    <img
-      src={settings.logoUrl}
-      alt=""
+    <span
       aria-hidden="true"
-      onError={() => setFailed(true)}
-      className="h-8 w-8 shrink-0 rounded-full object-contain sm:h-10 sm:w-10"
-    />
+      className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 p-0.5 shadow-sm sm:h-11 sm:w-11"
+      style={{ backgroundColor: settings.secondaryColor, borderColor: settings.accentColor }}
+    >
+      {settings.logoUrl && !failed ? (
+        <img
+          src={settings.logoUrl}
+          alt=""
+          onError={() => setFailed(true)}
+          className="h-full w-full rounded-full object-contain"
+        />
+      ) : (
+        <span className="font-display text-[10px] font-bold" style={{ color: settings.highlightColor }}>DQ</span>
+      )}
+    </span>
   );
 }
 
@@ -55,11 +63,29 @@ export default function MembershipCardFace({
   return (
     <article
       aria-label={`${settings.organizationName} membership card for ${member.name}`}
-      className="membership-card-face relative mx-auto aspect-[1.585/1] w-full overflow-hidden rounded-[1.1rem] text-white shadow-xl shadow-[#29213F]/15 sm:rounded-[1.35rem]"
-      style={{ backgroundColor: settings.backgroundColor }}
+      className="membership-card-face relative mx-auto aspect-[1.585/1] w-full overflow-hidden text-white shadow-xl shadow-[#29213F]/15"
+      style={{ backgroundColor: settings.backgroundColor, borderRadius: "3.7% / 5.9%" }}
     >
-      <div aria-hidden="true" className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: settings.accentColor }} />
-      <div className="relative grid h-full grid-rows-[auto_auto_minmax(0,1fr)_auto] gap-1.5 p-2.5 pl-3.5 sm:gap-2 sm:p-4 sm:pl-5 md:gap-2.5 md:p-5 md:pl-6">
+      <svg aria-hidden="true" viewBox="0 0 1200 757" className="pointer-events-none absolute inset-0 z-0 h-full w-full">
+        {membershipCardCircuitPaths.map((points, index) => (
+          <g key={index}>
+            <polyline
+              points={points.map(([x, y]) => `${x},${y}`).join(" ")}
+              fill="none"
+              stroke={settings.accentColor}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity=".2"
+            />
+            {points.slice(1, -1).map(([cx, cy]) => (
+              <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="3" fill={settings.highlightColor} opacity=".38" />
+            ))}
+          </g>
+        ))}
+      </svg>
+      <div aria-hidden="true" className="absolute inset-y-0 left-0 z-10 w-1" style={{ backgroundColor: settings.accentColor }} />
+      <div className="relative z-10 grid h-full grid-rows-[auto_auto_minmax(0,1fr)_auto] gap-1.5 p-2.5 pl-3.5 sm:gap-2 sm:p-4 sm:pl-5 md:gap-2.5 md:p-5 md:pl-6">
         <header className="flex min-w-0 items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <BrandLogo settings={settings} />

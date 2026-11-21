@@ -5,7 +5,7 @@ import QRCode from "qrcode";
 import { api, apiUrl } from "@/lib/api";
 import { useAuth, type SessionUser } from "@/contexts/AuthContext";
 import { EmptyState, PageHeading, PlatformShell } from "@/components/platform/PlatformShell";
-import MembershipCardFace from "@/components/devqueens/MembershipCardFace";
+import MembershipCardFace, { membershipCardCircuitPaths } from "@/components/devqueens/MembershipCardFace";
 import { CourseCatalog, CourseWorkspace, LearningHome } from "@/pages/CoursePages";
 import { AnalyticsPage, CommunityPage } from "@/pages/SocialPages";
 import { MemberInboxPage } from "@/pages/InboxPages";
@@ -227,19 +227,76 @@ function MembershipCardPage({ user }: { user: SessionUser }) {
       ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height);
     };
 
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(0, 0, 1200, 757, 45);
+    ctx.clip();
     ctx.fillStyle = settings.backgroundColor;
     ctx.fillRect(0, 0, 1200, 757);
     ctx.fillStyle = settings.accentColor;
     ctx.fillRect(0, 0, 10, 757);
 
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = settings.accentColor;
+    ctx.globalAlpha = 0.2;
+    for (const points of membershipCardCircuitPaths) {
+      ctx.beginPath();
+      points.forEach(([x, y], index) => index === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+      ctx.stroke();
+    }
+    ctx.fillStyle = settings.highlightColor;
+    ctx.globalAlpha = 0.38;
+    for (const points of membershipCardCircuitPaths) {
+      for (const [x, y] of points.slice(1, -1)) {
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+
+    const drawLogoFallback = () => {
+      ctx.beginPath();
+      ctx.arc(92, 63, 28, 0, Math.PI * 2);
+      ctx.fillStyle = settings.secondaryColor;
+      ctx.fill();
+      ctx.strokeStyle = settings.accentColor;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.fillStyle = settings.highlightColor;
+      ctx.font = "bold 20px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("DQ", 92, 70);
+      ctx.textAlign = "left";
+    };
+
+    const drawLogoImage = async (image: HTMLImageElement) => {
+      ctx.beginPath();
+      ctx.arc(92, 63, 28, 0, Math.PI * 2);
+      ctx.fillStyle = settings.secondaryColor;
+      ctx.fill();
+      ctx.strokeStyle = settings.accentColor;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(92, 63, 24, 0, Math.PI * 2);
+      ctx.clip();
+      drawImageContain(image, 68, 39, 48, 48);
+      ctx.restore();
+    };
+
     if (settings.logoUrl) {
       try {
-        drawImageContain(await loadImage(settings.logoUrl), 64, 35, 56, 56);
+        await drawLogoImage(await loadImage(settings.logoUrl));
       } catch {
-        drawInitials(64, 35, 56, 56, "DQ");
+        drawLogoFallback();
       }
     } else {
-      drawInitials(64, 35, 56, 56, "DQ");
+      drawLogoFallback();
     }
 
     ctx.fillStyle = "#FFFFFF";
@@ -329,6 +386,7 @@ function MembershipCardPage({ user }: { user: SessionUser }) {
     ctx.textAlign = "right";
     ctx.fillText(fitText(settings.footerMessage, 360), 1136, 584);
     ctx.textAlign = "left";
+    ctx.restore();
   }, [qr, settings, user]);
 
   useEffect(() => {
