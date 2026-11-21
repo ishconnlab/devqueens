@@ -33,7 +33,8 @@ describe("MembershipCardFace", () => {
     render(<MembershipCardFace member={member} settings={settings} qrDataUrl={qrDataUrl} />);
 
     const card = screen.getByRole("article", { name: "DEVQUEENS membership card for Amina N." });
-    expect(card).toHaveStyle({ backgroundColor: "#29213F", borderRadius: "3.7% / 5.9%" });
+    expect(card).toHaveStyle({ backgroundColor: "#29213F" });
+    expect(card.style.borderRadius).toBe("0");
     expect(card.querySelector("svg[aria-hidden='true']")).toBeInTheDocument();
     expect(screen.getByText("DQ").parentElement).toHaveClass("rounded-full", "border-2");
     expect(screen.getByText("LEARN. BUILD. LEAD.")).toBeInTheDocument();

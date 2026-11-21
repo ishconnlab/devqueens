@@ -250,7 +250,7 @@
     max-width: none;
     aspect-ratio: auto;
     padding: 3mm;
-    border-radius: 3mm !important;
+    border-radius: 0 !important;
     border: 0.3mm solid rgba(255, 255, 255, .18);
     box-shadow: none;
     print-color-adjust: exact;

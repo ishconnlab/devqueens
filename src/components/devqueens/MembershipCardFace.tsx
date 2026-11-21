@@ -52,7 +52,7 @@ export default function MembershipCardFace({
     <article
       aria-label={`${settings.organizationName} membership card for ${member.name}`}
       className="membership-card-face relative mx-auto aspect-[1.585/1] w-full overflow-hidden text-white shadow-xl shadow-[#29213F]/15"
-      style={{ backgroundColor: settings.backgroundColor, borderRadius: "3.7% / 5.9%" }}
+      style={{ backgroundColor: settings.backgroundColor, borderRadius: 0 }}
     >
       <svg aria-hidden="true" viewBox="0 0 1200 757" className="pointer-events-none absolute inset-0 z-0 h-full w-full">
         {membershipCardCircuitPaths.map((points, index) => (
@@ -72,7 +72,6 @@ export default function MembershipCardFace({
           </g>
         ))}
       </svg>
-      <div aria-hidden="true" className="absolute inset-y-0 left-0 z-10 w-1" style={{ backgroundColor: settings.accentColor }} />
       <div className="relative z-10 grid h-full grid-rows-[auto_auto_minmax(0,1fr)_auto] gap-1.5 p-2.5 pl-3.5 sm:gap-2 sm:p-4 sm:pl-5 md:gap-2.5 md:p-5 md:pl-6">
         <header className="flex min-w-0 items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">

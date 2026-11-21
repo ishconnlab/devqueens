@@ -142,8 +142,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await api("/auth/logout", { method: "POST" });
+    authRequestId.current += 1;
+    sessionResolved.current = true;
     setUser(null);
+    setLoading(false);
+    setError("");
+    await api("/auth/logout", { method: "POST" });
   }, []);
 
   const value = useMemo(() => ({ user, loading, error, login, adminLogin, adminRegister, register, logout, refresh }), [user, loading, error, login, adminLogin, adminRegister, register, logout, refresh]);

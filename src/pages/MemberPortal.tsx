@@ -229,12 +229,10 @@ function MembershipCardPage({ user }: { user: SessionUser }) {
 
     ctx.save();
     ctx.beginPath();
-    ctx.roundRect(0, 0, 1200, 757, 45);
+    ctx.rect(0, 0, 1200, 757);
     ctx.clip();
     ctx.fillStyle = settings.backgroundColor;
     ctx.fillRect(0, 0, 1200, 757);
-    ctx.fillStyle = settings.accentColor;
-    ctx.fillRect(0, 0, 10, 757);
 
     ctx.save();
     ctx.lineWidth = 2;

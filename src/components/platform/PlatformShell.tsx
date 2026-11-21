@@ -24,9 +24,12 @@ export function PlatformShell({ children, admin = false }: { children: ReactNode
       { label: "My profile", href: "/portal/profile" },
     ];
 
-  const signOut = async () => {
-    await logout();
-    navigate("/");
+  const signOut = () => {
+    setMenuOpen(false);
+    navigate("/", { replace: true });
+    void logout().catch((cause) => {
+      console.error("The server could not confirm sign-out.", cause);
+    });
   };
 
   return (

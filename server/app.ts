@@ -17,6 +17,7 @@ import { gradeObjectiveAnswers } from "./assessment.js";
 import { config } from "./config.js";
 import { clearAuthCookie, requireAdmin, requireAuth, setAuthCookie, type AuthenticatedRequest } from "./auth.js";
 import { defaultMembershipCardSettings, getMembershipCardSettings, membershipCardSettingsKey } from "./membershipCardSettings.js";
+import { profileUpdateFields } from "./profileUpdates.js";
 import { AssessmentAttempt, Certificate, ChatMessage, ChatThread, ContentEntry, Course, Enrollment, Follow, PlatformSettings, SocialPost, User } from "./models.js";
 import { adminRegistrationSchema, assessmentAnswersSchema, chatMessageSchema, contentSchema, courseSchema, membershipCardSettingsSchema, profileSchema, publicAdminRegistrationSchema, registrationSchema, socialCommentSchema, socialPostSchema } from "./validation.js";
 
@@ -761,7 +762,7 @@ router.patch("/me", async (req: AuthenticatedRequest, res, next) => {
   try {
     const data = parseOrRespond(profileSchema, req.body, res);
     if (!data) return;
-    const user = await User.findByIdAndUpdate(req.user!.id, { $set: data }, { new: true, runValidators: true }).select("-passwordHash");
+    const user = await User.findByIdAndUpdate(req.user!.id, { $set: profileUpdateFields(data) }, { new: true, runValidators: true }).select("-passwordHash");
     res.json({ user });
   } catch (error) {
     next(error);
