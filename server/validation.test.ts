@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { gradeObjectiveAnswers } from "./assessment.js";
-import { adminRegistrationSchema, chatMessageSchema, contentSchema, courseSchema, publicAdminRegistrationSchema, registrationSchema, socialCommentSchema, socialPostSchema } from "./validation.js";
+import { adminRegistrationSchema, chatMessageSchema, contentSchema, courseSchema, membershipCardSettingsSchema, publicAdminRegistrationSchema, registrationSchema, socialCommentSchema, socialPostSchema } from "./validation.js";
 
 const validCourse = {
   title: "Foundations of Web Development",
@@ -96,6 +96,35 @@ describe("registration and published content validation", () => {
   it("rejects executable URLs in user-managed public content", () => {
     expect(contentSchema.safeParse({ data: { title: "Partner", url: "javascript:alert(1)" }, published: true }).success).toBe(false);
     expect(contentSchema.safeParse({ data: { title: "Partner", url: "https://example.org" }, published: true }).success).toBe(true);
+  });
+});
+
+describe("membership card settings validation", () => {
+  const settings = {
+    organizationName: "DEVQUEENS",
+    brandSubtitle: "An Initiative by IshConnect",
+    slogan: "LEARN. BUILD. LEAD.",
+    supportingDescription: "Empowering girls through technology, skills and innovation.",
+    backgroundColor: "#29213F",
+    secondaryColor: "#514477",
+    accentColor: "#8B7BB8",
+    highlightColor: "#F5C842",
+    memberCategoryLabel: "DevQueens member",
+    defaultMemberRole: "Technology learner",
+    footerMessage: "IshConnect · DevQueens",
+    logoUrl: "/devqueenslogo.png",
+    qrCaption: "SCAN TO VIEW PROFILE",
+  };
+
+  it("accepts official palette colors and normalizes their casing", () => {
+    const result = membershipCardSettingsSchema.parse({ ...settings, accentColor: "#8b7bb8" });
+    expect(result.accentColor).toBe("#8B7BB8");
+  });
+
+  it("rejects unrelated colors, unsafe logo URLs, and member-specific fields", () => {
+    expect(membershipCardSettingsSchema.safeParse({ ...settings, accentColor: "#FF00AA" }).success).toBe(false);
+    expect(membershipCardSettingsSchema.safeParse({ ...settings, logoUrl: "javascript:alert(1)" }).success).toBe(false);
+    expect(membershipCardSettingsSchema.safeParse({ ...settings, memberId: "DQ-2026-00000001" }).success).toBe(false);
   });
 });
 

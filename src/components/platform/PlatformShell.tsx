@@ -4,6 +4,7 @@ import { ArrowUpRight, LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
 import DevQueensLogo from "@/components/devqueens/DevQueensLogo";
 import { useAuth } from "@/contexts/AuthContext";
+import { ADMIN_NAVIGATION } from "@/lib/adminNavigation";
 
 export function PlatformShell({ children, admin = false }: { children: ReactNode; admin?: boolean }) {
   const { user, logout } = useAuth();
@@ -11,33 +12,16 @@ export function PlatformShell({ children, admin = false }: { children: ReactNode
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const links = admin
-    ? [
-      ["Overview", "/admin"],
-      ["Girls", "/admin/members"],
-      ["Inbox", "/admin/inbox"],
-      ["Enrollments", "/admin/enrollments"],
-      ["Courses", "/admin/courses"],
-      ["Assessments", "/admin/assessments"],
-      ["Certificates", "/admin/certificates"],
-      ["Team", "/admin/team"],
-      ["Badges", "/admin/badges"],
-      ["Alumni", "/admin/alumni"],
-      ["Top achievers", "/admin/achiever"],
-      ["Partners", "/admin/partner"],
-      ["Gallery", "/admin/gallery"],
-      ["Testimonials", "/admin/testimonial"],
-      ["Reports", "/admin/reports"],
-      ["Settings", "/admin/settings"],
-    ]
+    ? ADMIN_NAVIGATION.map(({ label, href }) => ({ label, href }))
     : [
-      ["My learning", "/portal"],
-      ["Community", "/portal/community"],
-      ["Analytics", "/portal/analytics"],
-      ["Inbox", "/portal/inbox"],
-      ["Explore courses", "/portal/courses"],
-      ["My certificates", "/portal/certificates"],
-      ["Membership card", "/portal/card"],
-      ["My profile", "/portal/profile"],
+      { label: "My learning", href: "/portal" },
+      { label: "Community", href: "/portal/community" },
+      { label: "Analytics", href: "/portal/analytics" },
+      { label: "Inbox", href: "/portal/inbox" },
+      { label: "Explore courses", href: "/portal/courses" },
+      { label: "My certificates", href: "/portal/certificates" },
+      { label: "Membership card", href: "/portal/card" },
+      { label: "My profile", href: "/portal/profile" },
     ];
 
   const signOut = async () => {
@@ -73,7 +57,7 @@ export function PlatformShell({ children, admin = false }: { children: ReactNode
         <aside className={`${menuOpen ? "block" : "hidden"} absolute z-20 min-h-[calc(100vh-68px)] w-64 border-r border-[#e8dfd5] bg-white px-4 py-6 md:relative md:block md:shrink-0`}>
           <p className="mb-3 px-3 text-[11px] font-bold uppercase tracking-[.14em] text-[#aaa2ad]">{admin ? "Workspace" : "Your space"}</p>
           <nav className="space-y-1">
-            {links.map(([label, href]) => (
+            {links.map(({ label, href }) => (
               <Link key={href} to={href} onClick={() => setMenuOpen(false)} aria-current={pathname === href ? "page" : undefined} className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition ${pathname === href ? "bg-[#34295d] text-white hover:bg-[#493b7d]" : "text-[#625e6b] hover:bg-[#eee8f5] hover:text-[#34295d]"}`}>
                 {label}
                 <ArrowUpRight size={14} className={pathname === href ? "text-white/60" : "text-[#b9acd9]"} />

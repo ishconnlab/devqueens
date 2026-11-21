@@ -9,6 +9,8 @@ import { AdminInboxPage } from "@/pages/InboxPages";
 import PageLoader from "@/components/devqueens/PageLoader";
 import { updateSeo } from "@/lib/seo";
 import AdminLoginPage from "@/pages/AdminAuthPage";
+import { ADMIN_NAVIGATION } from "@/lib/adminNavigation";
+import MembershipCardSettingsPage from "@/pages/MembershipCardSettingsPage";
 
 type CourseForm = {
   title: string; slug: string; description: string; coverImage: string; level: "Beginner" | "Intermediate" | "Advanced";
@@ -47,7 +49,7 @@ function AdminOverview() {
       <Link to="/admin/assessments" className="flex items-center justify-between rounded-xl border border-orange-200 bg-[#fff4e8] p-5 hover:bg-orange-100"><div><p className="text-xs font-bold uppercase tracking-wider text-orange-800">Needs a review</p><p className="mt-1 font-display text-xl font-bold">{stats?.pendingAssessments ?? "—"} practical assessments</p><p className="mt-1 text-sm text-stone-600">Review submissions and award marks.</p></div><ArrowRight size={20} className="text-orange-700" /></Link>
       <div className="rounded-xl border border-orange-100 bg-white p-5"><p className="text-xs font-bold uppercase tracking-wider text-stone-400">A quick reminder</p><p className="mt-2 font-display text-lg font-bold">Make the next step possible.</p><p className="mt-1 text-sm leading-6 text-stone-500">Keep courses clear, practical and accessible for learners at every stage of their technology journey.</p></div>
     </div>
-    <div className="mt-8"><h2 className="mb-4 font-display text-xl font-bold">Manage the platform</h2><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{[["Girls & members", "/admin/members"], ["Courses", "/admin/courses"], ["Alumni & achievers", "/admin/alumni"], ["Gallery & stories", "/admin/gallery"]].map(([label, href]) => <Link key={href} to={href} className="rounded-xl border border-orange-100 bg-white p-4 text-sm font-semibold text-stone-700 transition hover:border-orange-300 hover:text-orange-800">{label} <ArrowRight size={14} className="ml-1 inline" /></Link>)}</div></div>
+    <div className="mt-8"><h2 className="mb-4 font-display text-xl font-bold">Manage the platform</h2><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">{ADMIN_NAVIGATION.filter(({ content }) => content !== "overview").map(({ label, href }) => <Link key={href} to={href} className="rounded-xl border border-orange-100 bg-white p-4 text-sm font-semibold text-stone-700 transition hover:border-orange-300 hover:text-orange-800">{label} <ArrowRight size={14} className="ml-1 inline" /></Link>)}</div></div>
   </>;
 }
 
@@ -582,12 +584,7 @@ function SettingsPage() {
 function AdminContent() {
   const params = useParams();
   const section = (params["*"] ?? "").split("/")[0] ?? "";
-  const sections: Record<string, string> = {
-    "": "overview", members: "members", inbox: "inbox", enrollments: "enrollments", courses: "courses", assessments: "assessments", certificates: "certificates",
-    team: "team", badges: "badge", alumni: "alumni", achiever: "achiever", partner: "partner", gallery: "gallery",
-    testimonial: "testimonial", reports: "reports", settings: "settings",
-  };
-  const key = sections[section];
+  const key = ADMIN_NAVIGATION.find(({ route }) => route === section)?.content;
   if (!key) return <EmptyState title="Administration page not found" message="Choose a section from the navigation." action={<Link to="/admin" className="btn-brand">Go to overview</Link>} />;
   if (key === "overview") return <AdminOverview />;
   if (key === "members") return <MembersManager />;
@@ -598,6 +595,7 @@ function AdminContent() {
   if (key === "certificates") return <CertificatesManager />;
   if (key === "reports") return <ReportsPage />;
   if (key === "settings") return <SettingsPage />;
+  if (key === "membership-card-settings") return <MembershipCardSettingsPage />;
   return <ContentManager kind={key} />;
 }
 

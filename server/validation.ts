@@ -88,6 +88,35 @@ export const publicAdminRegistrationSchema = adminRegistrationSchema.extend({
   registrationCode: z.string().min(32).max(256),
 });
 
+const membershipCardColors = ["#29213F", "#514477", "#8B7BB8", "#F5C842", "#FFFFFF"] as const;
+const membershipCardColorSchema = z.string().transform((value) => value.toUpperCase()).pipe(z.enum(membershipCardColors));
+const membershipCardLogoUrlSchema = z.string().trim().max(2048).refine((value) => {
+  if (!value) return true;
+  if (value.startsWith("/") && !value.startsWith("//")) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+});
+
+export const membershipCardSettingsSchema = z.object({
+  organizationName: z.string().trim().min(2).max(64),
+  brandSubtitle: z.string().trim().min(1).max(96),
+  slogan: z.string().trim().min(1).max(48),
+  supportingDescription: z.string().trim().min(1).max(160),
+  backgroundColor: membershipCardColorSchema,
+  secondaryColor: membershipCardColorSchema,
+  accentColor: membershipCardColorSchema,
+  highlightColor: membershipCardColorSchema,
+  memberCategoryLabel: z.string().trim().min(1).max(56),
+  defaultMemberRole: z.string().trim().min(1).max(80),
+  footerMessage: z.string().trim().min(1).max(120),
+  logoUrl: membershipCardLogoUrlSchema,
+  qrCaption: z.string().trim().min(1).max(56),
+}).strict();
+
 export const profileSchema = z.object({
   name: z.string().trim().min(2).max(100).optional(),
   profile: z.object({

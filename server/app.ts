@@ -16,8 +16,9 @@ import { z } from "zod";
 import { gradeObjectiveAnswers } from "./assessment.js";
 import { config } from "./config.js";
 import { clearAuthCookie, requireAdmin, requireAuth, setAuthCookie, type AuthenticatedRequest } from "./auth.js";
+import { defaultMembershipCardSettings, getMembershipCardSettings, membershipCardSettingsKey } from "./membershipCardSettings.js";
 import { AssessmentAttempt, Certificate, ChatMessage, ChatThread, ContentEntry, Course, Enrollment, Follow, PlatformSettings, SocialPost, User } from "./models.js";
-import { adminRegistrationSchema, assessmentAnswersSchema, chatMessageSchema, contentSchema, courseSchema, profileSchema, publicAdminRegistrationSchema, registrationSchema, socialCommentSchema, socialPostSchema } from "./validation.js";
+import { adminRegistrationSchema, assessmentAnswersSchema, chatMessageSchema, contentSchema, courseSchema, membershipCardSettingsSchema, profileSchema, publicAdminRegistrationSchema, registrationSchema, socialCommentSchema, socialPostSchema } from "./validation.js";
 
 const app = express();
 const router = express.Router();
@@ -33,6 +34,10 @@ const communityLinkSchema = z.object({
   }, "Community link must use HTTPS."),
   enabled: z.boolean(),
 });
+
+function memberProfileUrl(memberId: string) {
+  return new URL(`/members/${encodeURIComponent(memberId)}`, config.APP_URL).toString();
+}
 
 async function ensureAdminAccountCreationSetting(adminCount: number) {
   try {
@@ -929,7 +934,13 @@ router.get("/certificates", async (req: AuthenticatedRequest, res, next) => {
 router.get("/member-card", async (req: AuthenticatedRequest, res, next) => {
   try {
     const user = await User.findById(req.user!.id).select("-passwordHash");
-    res.json({ user, profileUrl: `${config.APP_URL}/members/${user!.memberId}` });
+    if (!user || user.role !== "member" || !user.memberId) return sendError(res, 403, "A member account is required to view a membership card.");
+    const cardSettings = await getMembershipCardSettings();
+    res.json({
+      user,
+      profileUrl: memberProfileUrl(user.memberId),
+      cardSettings,
+    });
   } catch (error) {
     next(error);
   }
@@ -954,7 +965,12 @@ router.get("/admin/stats", requireAdmin, async (_req, res, next) => {
 router.get("/admin/members", requireAdmin, async (_req, res, next) => {
   try {
     const members = await User.find({ role: "member" }).select("-passwordHash").sort({ createdAt: -1 });
-    res.json({ members });
+    res.json({
+      members: members.map((member) => ({
+        ...member.toObject(),
+        profileUrl: member.memberId ? memberProfileUrl(member.memberId) : "",
+      })),
+    });
   } catch (error) {
     next(error);
   }
@@ -1260,12 +1276,44 @@ router.get("/admin/settings", requireAdmin, async (_req, res, next) => {
         { $set: { value: false, additionalAdminCreated: true } },
       );
     }
-    const settings = await PlatformSettings.find().lean();
+    const settings = await PlatformSettings.find({ key: { $ne: membershipCardSettingsKey } }).lean();
     const adminCreationSetting = settings.find((item) => item.key === adminAccountCreationKey);
     res.json({
       settings: Object.fromEntries(settings.map((item) => [item.key, item.value])),
       adminAccountCreationUsed: adminCreationSetting?.additionalAdminCreated === true || adminCount >= 2,
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/admin/membership-card-settings", requireAdmin, async (_req, res, next) => {
+  try {
+    res.json({ settings: await getMembershipCardSettings() });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put("/admin/membership-card-settings", requireAdmin, async (req, res, next) => {
+  try {
+    const parsed = membershipCardSettingsSchema.safeParse(req.body);
+    if (!parsed.success) return sendError(res, 400, "Check the membership card settings and try again.", parsed.error.flatten());
+    await PlatformSettings.findOneAndUpdate(
+      { key: membershipCardSettingsKey },
+      { $set: { value: parsed.data } },
+      { upsert: true, new: true, runValidators: true },
+    );
+    res.json({ settings: parsed.data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete("/admin/membership-card-settings", requireAdmin, async (_req, res, next) => {
+  try {
+    await PlatformSettings.deleteOne({ key: membershipCardSettingsKey });
+    res.json({ settings: { ...defaultMembershipCardSettings } });
   } catch (error) {
     next(error);
   }
@@ -1293,6 +1341,9 @@ router.put("/admin/settings", requireAdmin, async (req, res, next) => {
   try {
     const parsed = z.record(z.string().max(80), z.unknown()).safeParse(req.body);
     if (!parsed.success) return sendError(res, 400, "Settings must be a key-value object.");
+    if (membershipCardSettingsKey in parsed.data) {
+      return sendError(res, 400, "Update membership card branding from Membership Card Settings.");
+    }
     if (parsed.data.communityJoinUrl !== undefined) {
       const url = z.string().url().max(2048).refine((value) => {
         try { return new URL(value).protocol === "https:"; } catch { return false; }
