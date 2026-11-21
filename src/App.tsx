@@ -21,7 +21,7 @@ const App = () => (
           <Route path="/login" element={<AuthPage mode="login" />} />
           <Route path="/register" element={<AuthPage mode="register" />} />
           <Route path="/admin/login" element={<Navigate to="/admin" replace />} />
-          <Route path="/admin/register" element={<Navigate to="/admin/settings" replace />} />
+          <Route path="/admin/register" element={<Navigate to="/admin?mode=register" replace />} />
           <Route path="/portal/*" element={<MemberPortal />} />
           <Route path="/admin/*" element={<AdminPortal />} />
           <Route path="/courses/:slug" element={<CourseWorkspace />} />

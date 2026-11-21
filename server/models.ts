@@ -217,6 +217,7 @@ export const PlatformSettings = mongoose.model(
       key: { type: String, required: true, unique: true },
       value: { type: Schema.Types.Mixed, required: true },
       additionalAdminCreated: { type: Boolean, default: false },
+      firstAdminRegistrationClaimed: { type: Boolean, default: false },
     },
     { timestamps: true },
   ),

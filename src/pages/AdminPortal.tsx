@@ -580,7 +580,8 @@ function SettingsPage() {
 }
 
 function AdminContent() {
-  const { section = "" } = useParams();
+  const params = useParams();
+  const section = (params["*"] ?? "").split("/")[0] ?? "";
   const sections: Record<string, string> = {
     "": "overview", members: "members", inbox: "inbox", enrollments: "enrollments", courses: "courses", assessments: "assessments", certificates: "certificates",
     team: "team", badges: "badge", alumni: "alumni", achiever: "achiever", partner: "partner", gallery: "gallery",

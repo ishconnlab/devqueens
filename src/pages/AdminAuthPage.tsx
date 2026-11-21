@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, ShieldCheck, UserPlus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
@@ -15,12 +15,17 @@ type RegistrationStatus = {
 export default function AdminLoginPage() {
   const { user, adminLogin, adminRegister, error: serviceError } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [searchParams] = useSearchParams();
+  const [mode, setMode] = useState<"login" | "register">(
+    searchParams.get("mode") === "register" ? "register" : "login",
+  );
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [registrationCode, setRegistrationCode] = useState("");
   const [status, setStatus] = useState<RegistrationStatus | null>(null);
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [statusError, setStatusError] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -32,13 +37,19 @@ export default function AdminLoginPage() {
     let active = true;
     api<RegistrationStatus>("/auth/registration-status")
       .then((result) => { if (active) setStatus(result); })
-      .catch(() => { if (active) setStatus(null); });
+      .catch(() => {
+        if (active) {
+          setStatus(null);
+          setStatusError("Could not check administrator registration availability. Please try again.");
+        }
+      })
+      .finally(() => { if (active) setStatusLoading(false); });
     return () => { active = false; };
   }, []);
 
   if (user) return <Navigate to={user.role === "admin" ? "/admin" : "/portal"} replace />;
 
-  const registrationClosed = status !== null && !status.adminRegistrationOpen;
+  const registrationClosed = status === null || !status.adminRegistrationOpen;
   const isRegister = mode === "register";
 
   const switchMode = (next: "login" | "register") => {
@@ -100,52 +111,66 @@ export default function AdminLoginPage() {
             ? "Create an administrator account to manage the DevQueens platform."
             : "Use your administrator account to manage the DevQueens platform."}
         </p>
-        {isRegister && status?.firstAdministrator && !registrationClosed && (
-          <p role="status" className="notice-success mt-4">No administrator exists yet. Create the first administrator to get started.</p>
-        )}
-        {isRegister && registrationClosed ? (
+        {isRegister && statusLoading ? (
+          <p role="status" className="mt-6 text-sm text-stone-500">Checking administrator registration availability…</p>
+        ) : isRegister && registrationClosed ? (
           <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <p className="text-sm font-semibold text-amber-900">Administrator registration is closed.</p>
-            <p className="mt-1 text-sm leading-6 text-amber-800">Sign in with an existing administrator account to manage administrator access in Settings.</p>
+            {statusError ? (
+              <p role="alert" className="text-sm text-amber-900">{statusError}</p>
+            ) : (
+              <>
+                <p className="text-sm font-semibold text-amber-900">Administrator registration is closed.</p>
+                <p className="mt-1 text-sm leading-6 text-amber-800">
+                  {status?.firstAdministrator
+                    ? "Configure a 32-character ADMIN_REGISTRATION_CODE or run the admin seed command to create the first administrator."
+                    : "Sign in with an existing administrator account to manage administrator access in Settings."}
+                </p>
+              </>
+            )}
             <button type="button" onClick={() => switchMode("login")} className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#34295d] px-4 text-sm font-semibold text-white transition hover:bg-[#493b7d]">
               Go to sign in <ArrowRight size={14} />
             </button>
           </div>
         ) : (
-          <form onSubmit={submit} className="mt-6 space-y-4">
-            {isRegister && (
-              <label className="form-label">Full name
-                <input required minLength={2} maxLength={100} autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} className="form-input" />
-              </label>
+          <>
+            {isRegister && status?.firstAdministrator && (
+              <p role="status" className="notice-success mt-4">No administrator exists yet. Create the first administrator to get started.</p>
             )}
-            <label className="form-label">Admin email
-              <input required type="email" maxLength={254} autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} className="form-input" />
-            </label>
-            <label className="form-label">Password
-              <input
-                required
-                type="password"
-                minLength={isRegister ? 10 : undefined}
-                maxLength={128}
-                pattern={isRegister ? "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{10,128}" : undefined}
-                autoComplete={isRegister ? "new-password" : "current-password"}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="form-input"
-              />
-              {isRegister && <span className="mt-1 block text-xs font-normal text-stone-500">At least 10 characters, including uppercase, lowercase, and a number.</span>}
-            </label>
-            {isRegister && status?.adminRegistrationRequiresCode && (
-              <label className="form-label">Registration code
-                <input required maxLength={256} autoComplete="off" value={registrationCode} onChange={(event) => setRegistrationCode(event.target.value)} className="form-input" />
-                <span className="mt-1 block text-xs font-normal text-stone-500">Use the invitation code shared by the DevQueens team.</span>
+            <form onSubmit={submit} className="mt-6 space-y-4">
+              {isRegister && (
+                <label className="form-label">Full name
+                  <input required minLength={2} maxLength={100} autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} className="form-input" />
+                </label>
+              )}
+              <label className="form-label">Admin email
+                <input required type="email" maxLength={254} autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} className="form-input" />
               </label>
-            )}
-            {(error || serviceError) && <p role="alert" className="notice-error">{error || serviceError}</p>}
-            <button disabled={busy} className="group inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#34295d] px-5 text-sm font-semibold text-white transition hover:bg-[#493b7d] disabled:cursor-not-allowed disabled:opacity-60">
-              {busy ? "Please wait…" : isRegister ? "Create administrator account" : "Sign in to administration"} {!busy && <ArrowRight size={15} />}
-            </button>
-          </form>
+              <label className="form-label">Password
+                <input
+                  required
+                  type="password"
+                  minLength={isRegister ? 10 : undefined}
+                  maxLength={128}
+                  pattern={isRegister ? "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{10,128}" : undefined}
+                  autoComplete={isRegister ? "new-password" : "current-password"}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="form-input"
+                />
+                {isRegister && <span className="mt-1 block text-xs font-normal text-stone-500">At least 10 characters, including uppercase, lowercase, and a number.</span>}
+              </label>
+              {isRegister && status?.adminRegistrationRequiresCode && (
+                <label className="form-label">Registration code
+                  <input required minLength={32} maxLength={256} autoComplete="off" value={registrationCode} onChange={(event) => setRegistrationCode(event.target.value)} className="form-input" />
+                  <span className="mt-1 block text-xs font-normal text-stone-500">Use the 32-character invitation code shared by the DevQueens team.</span>
+                </label>
+              )}
+              {(error || serviceError) && <p role="alert" className="notice-error">{error || serviceError}</p>}
+              <button disabled={busy} className="group inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#34295d] px-5 text-sm font-semibold text-white transition hover:bg-[#493b7d] disabled:cursor-not-allowed disabled:opacity-60">
+                {busy ? "Please wait…" : isRegister ? "Create administrator account" : "Sign in to administration"} {!busy && <ArrowRight size={15} />}
+              </button>
+            </form>
+          </>
         )}
         <Link to="/" className="mt-6 inline-flex items-center gap-1 border-t border-stone-100 pt-4 text-xs font-semibold text-stone-600 hover:text-[#34295d]"><ArrowLeft size={13} /> Home</Link>
       </section>

@@ -17,7 +17,7 @@ import { gradeObjectiveAnswers } from "./assessment.js";
 import { config } from "./config.js";
 import { clearAuthCookie, requireAdmin, requireAuth, setAuthCookie, type AuthenticatedRequest } from "./auth.js";
 import { AssessmentAttempt, Certificate, ChatMessage, ChatThread, ContentEntry, Course, Enrollment, Follow, PlatformSettings, SocialPost, User } from "./models.js";
-import { adminRegistrationSchema, assessmentAnswersSchema, chatMessageSchema, contentSchema, courseSchema, profileSchema, registrationSchema, socialCommentSchema, socialPostSchema } from "./validation.js";
+import { adminRegistrationSchema, assessmentAnswersSchema, chatMessageSchema, contentSchema, courseSchema, profileSchema, publicAdminRegistrationSchema, registrationSchema, socialCommentSchema, socialPostSchema } from "./validation.js";
 
 const app = express();
 const router = express.Router();
@@ -42,6 +42,7 @@ async function ensureAdminAccountCreationSetting(adminCount: number) {
         $setOnInsert: {
           value: adminCount < 2,
           additionalAdminCreated: adminCount >= 2,
+          firstAdminRegistrationClaimed: false,
         },
       },
       { upsert: true },
@@ -53,7 +54,7 @@ async function ensureAdminAccountCreationSetting(adminCount: number) {
 }
 
 function registrationCodeMatches(input: string | undefined) {
-  if (!config.ADMIN_REGISTRATION_CODE) return true;
+  if (!config.ADMIN_REGISTRATION_CODE || config.ADMIN_REGISTRATION_CODE.length < 32) return false;
   if (!input) return false;
   const provided = createHash("sha256").update(input).digest();
   const expected = createHash("sha256").update(config.ADMIN_REGISTRATION_CODE).digest();
@@ -64,12 +65,15 @@ async function adminRegistrationAvailability() {
   const adminCount = await User.countDocuments({ role: "admin" });
   await ensureAdminAccountCreationSetting(adminCount);
   const setting = await PlatformSettings.findOne({ key: adminAccountCreationKey }).lean();
-  const requiresCode = Boolean(config.ADMIN_REGISTRATION_CODE);
+  const requiresCode = Boolean(config.ADMIN_REGISTRATION_CODE && config.ADMIN_REGISTRATION_CODE.length >= 32);
   const slotAvailable = setting?.value === true && setting.additionalAdminCreated !== true;
+  const firstRegistrationAvailable = adminCount === 0
+    && setting?.firstAdminRegistrationClaimed !== true
+    && setting?.additionalAdminCreated !== true;
   return {
     adminCount,
     requiresCode,
-    open: adminCount === 0 || (adminCount < 2 && slotAvailable),
+    open: requiresCode && (firstRegistrationAvailable || (adminCount < 2 && slotAvailable)),
   };
 }
 
@@ -205,34 +209,45 @@ router.get("/auth/registration-status", async (_req, res, next) => {
 
 router.post("/auth/admin-register", authRateLimit, async (req, res, next) => {
   try {
-    const data = parseOrRespond(adminRegistrationSchema.extend({ registrationCode: z.string().max(256).optional() }), req.body, res);
+    const data = parseOrRespond(publicAdminRegistrationSchema, req.body, res);
     if (!data) return;
     const availability = await adminRegistrationAvailability();
     if (!availability.open) {
-      return sendError(res, 403, "Administrator registration is closed. Sign in with an existing administrator account to create the additional admin.");
+      return sendError(res, 403, "Administrator registration is closed. Configure an invitation code or sign in with an existing administrator account.");
     }
-    if (availability.requiresCode) {
-      if (!data.registrationCode) return sendError(res, 400, "Enter the administrator registration code.");
-      if (!registrationCodeMatches(data.registrationCode)) return sendError(res, 403, "The administrator registration code is incorrect.");
-    }
+    if (!registrationCodeMatches(data.registrationCode)) return sendError(res, 403, "The administrator registration code is incorrect.");
     const email = data.email.toLowerCase();
     if (await User.exists({ email })) return sendError(res, 409, "An account with this email already exists.");
-    let claimedSlot = false;
-    if (availability.adminCount > 0) {
+    const passwordHash = await bcrypt.hash(data.password, 12);
+    let claimedSlot: "first" | "additional";
+    if (availability.adminCount === 0) {
+      const claim = await PlatformSettings.findOneAndUpdate(
+        { key: adminAccountCreationKey, firstAdminRegistrationClaimed: { $ne: true }, additionalAdminCreated: { $ne: true } },
+        { $set: { firstAdminRegistrationClaimed: true } },
+        { new: false },
+      );
+      if (!claim) return sendError(res, 403, "Administrator registration is already being completed.");
+      claimedSlot = "first";
+    } else {
       const claimed = await PlatformSettings.findOneAndUpdate(
         { key: adminAccountCreationKey, value: true, additionalAdminCreated: { $ne: true } },
         { $set: { value: false, additionalAdminCreated: true } },
         { new: false },
       );
       if (!claimed) return sendError(res, 403, "Administrator registration is closed.");
-      claimedSlot = true;
+      claimedSlot = "additional";
     }
-    const passwordHash = await bcrypt.hash(data.password, 12);
-    let user;
     try {
-      user = await User.create({ name: data.name, email, passwordHash, role: "admin" });
+      const user = await User.create({ name: data.name, email, passwordHash, role: "admin" });
+      setAuthCookie(res, user);
+      res.status(201).json({ user: { id: user.id, name: user.name, email: user.email, role: user.role } });
     } catch (error) {
-      if (claimedSlot) {
+      if (claimedSlot === "first") {
+        await PlatformSettings.updateOne(
+          { key: adminAccountCreationKey, firstAdminRegistrationClaimed: true },
+          { $set: { firstAdminRegistrationClaimed: false } },
+        );
+      } else if (await User.countDocuments({ role: "admin" }) < 2) {
         await PlatformSettings.updateOne(
           { key: adminAccountCreationKey, additionalAdminCreated: true },
           { $set: { value: true, additionalAdminCreated: false } },
@@ -240,15 +255,6 @@ router.post("/auth/admin-register", authRateLimit, async (req, res, next) => {
       }
       throw error;
     }
-    if (availability.adminCount === 0) {
-      await PlatformSettings.updateOne(
-        { key: adminAccountCreationKey },
-        { $set: { value: true, additionalAdminCreated: false } },
-        { upsert: true },
-      );
-    }
-    setAuthCookie(res, user);
-    res.status(201).json({ user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (error) {
     next(error);
   }

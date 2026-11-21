@@ -46,7 +46,7 @@ Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env` (at least 12 characters), then 
 npm run seed:admin
 ```
 
-The seed command creates the administrator only if the email is unused. It refuses to promote an existing member account. If the database has no administrator, the `/admin` page offers first-administrator registration. After the first administrator exists, one additional administrator can register from `/admin` while admin account creation is enabled in Admin Settings. If `ADMIN_REGISTRATION_CODE` is configured, registrants must also supply it. An existing administrator can also create that one additional account from Admin Settings.
+The seed command creates the administrator only if the email is unused. It refuses to promote an existing member account. If the database has no administrator, the `/admin` page offers first-administrator registration only when `ADMIN_REGISTRATION_CODE` contains a secret of at least 32 characters. Generate one with `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"` and set it in the deployment environment. After the first administrator exists, one additional administrator can register from `/admin` while admin account creation is enabled in Admin Settings. The invitation code is required for every public administrator registration. An existing administrator can also create that one additional account from Admin Settings.
 
 ### Reset an administrator password
 
@@ -77,7 +77,7 @@ This command only updates an existing account with the `admin` role. It does not
 | `CERTIFICATE_SIGNER_TITLE` | No | Signatory title printed on course certificates |
 | `ADMIN_EMAIL` | Seed only | Initial administrator email |
 | `ADMIN_PASSWORD` | Seed only | Initial administrator password |
-| `ADMIN_REGISTRATION_CODE` | Optional | Additional invitation code required for public administrator registration from `/admin` when set |
+| `ADMIN_REGISTRATION_CODE` | Optional | Secret invitation code (minimum 32 characters); public administrator registration stays closed unless configured |
 
 Profile, community-post and chat image uploads return a configuration error until all Cloudinary values are set. Uploads are limited to 5 MB and transformed by Cloudinary.
 
