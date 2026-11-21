@@ -124,7 +124,7 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
               <div className="mt-8">
                 <p className="font-mono text-xs text-[#817791]">const nextStep =</p>
                 <p className="mt-1 font-display text-2xl font-bold text-[#34295d]">yours to imagine<span className="text-[#e5684f]">.</span></p>
-                {!isRegister && <Link to="/admin" aria-label="Administrator sign in" title="Administrator sign in" className="mt-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-white/60 text-[#51447e] transition hover:bg-white hover:text-[#34295d]">
+                {!isRegister && <Link to="/admin" aria-label="Admin sign-in" className="mt-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-white/60 text-[#51447e] transition hover:bg-white hover:text-[#34295d]">
                   <LockKeyhole size={15} aria-hidden="true" />
                 </Link>}
               </div>
@@ -239,7 +239,7 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
               {isRegister ? "Sign in" : "Join DevQueens"}
             </Link>
           </p>
-          {!isRegister && <Link to="/admin" aria-label="Administrator sign in" title="Administrator sign in" className="mt-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e8dfd5] bg-[#fbf9f5] text-[#51447e] transition hover:border-[#b9acd9] hover:bg-[#f7f3fa] hover:text-[#34295d] sm:hidden">
+          {!isRegister && <Link to="/admin" aria-label="Admin sign-in" className="mt-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e8dfd5] bg-[#fbf9f5] text-[#51447e] transition hover:border-[#b9acd9] hover:bg-[#f7f3fa] hover:text-[#34295d] sm:hidden">
             <LockKeyhole size={15} aria-hidden="true" />
           </Link>}
           <p className="mt-5 border-t border-[#eee8e0] pt-4 text-center text-[11px] leading-5 text-[#96909a]">
