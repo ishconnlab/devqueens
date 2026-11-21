@@ -206,8 +206,21 @@
 }
 
 @media print {
+  @page {
+    size: 85.6mm 54mm;
+    margin: 0;
+  }
+
   body * {
     visibility: hidden !important;
+  }
+
+  html,
+  body {
+    width: 85.6mm;
+    height: 54mm;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -220,12 +233,28 @@
     visibility: visible !important;
   }
   #membership-card-print {
-    position: absolute;
-    inset: 0;
-    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 85.6mm;
+    height: 54mm;
     max-width: none;
+    margin: 0;
     border: 0;
-    padding: 1rem;
+    padding: 0;
+    overflow: hidden;
+  }
+  #membership-card-print .membership-card-face {
+    width: 85.6mm;
+    height: 54mm;
+    max-width: none;
+    aspect-ratio: auto;
+    padding: 3mm;
+    border-radius: 3mm;
+    border: 0.3mm solid rgba(255, 255, 255, .18);
+    box-shadow: none;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
   #membership-card-actions {
     display: none !important;

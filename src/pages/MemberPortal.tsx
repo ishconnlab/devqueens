@@ -5,6 +5,7 @@ import QRCode from "qrcode";
 import { api, apiUrl } from "@/lib/api";
 import { useAuth, type SessionUser } from "@/contexts/AuthContext";
 import { EmptyState, PageHeading, PlatformShell } from "@/components/platform/PlatformShell";
+import DevQueensLogo from "@/components/devqueens/DevQueensLogo";
 import { CourseCatalog, CourseWorkspace, LearningHome } from "@/pages/CoursePages";
 import { AnalyticsPage, CommunityPage } from "@/pages/SocialPages";
 import { MemberInboxPage } from "@/pages/InboxPages";
@@ -162,33 +163,131 @@ function MembershipCardPage({ user }: { user: SessionUser }) {
     if (!canvas || !qr) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    canvas.width = 1200; canvas.height = 720;
-    ctx.fillStyle = "#fff7ed"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#f97316"; ctx.fillRect(0, 0, 20, canvas.height);
-    ctx.fillStyle = "#292524"; ctx.font = "bold 30px Arial"; ctx.fillText("DEVQUEENS", 80, 95);
-    ctx.fillStyle = "#c2410c"; ctx.font = "18px Arial"; ctx.fillText("AN INITIATIVE BY ISHCONNECT", 80, 130);
+    canvas.width = 2400;
+    canvas.height = 1514;
+    ctx.scale(2, 2);
+    const roundRect = (x: number, y: number, width: number, height: number, radius: number) => {
+      ctx.beginPath();
+      ctx.roundRect(x, y, width, height, radius);
+    };
+
+    ctx.fillStyle = "#28213f";
+    ctx.fillRect(0, 0, 1200, 757);
+    const glow = ctx.createRadialGradient(940, 80, 5, 940, 80, 430);
+    glow.addColorStop(0, "rgba(81, 68, 126, .72)");
+    glow.addColorStop(1, "rgba(40, 33, 63, 0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(500, 0, 700, 500);
+    ctx.strokeStyle = "rgba(255,255,255,.07)";
+    ctx.lineWidth = 34;
+    ctx.beginPath();
+    ctx.arc(1080, 30, 190, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = "#f4c744";
+    ctx.fillRect(0, 0, 14, 757);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 32px Arial";
+    ctx.fillText("DEVQUEENS", 64, 76);
+    ctx.fillStyle = "rgba(255,255,255,.58)";
+    ctx.font = "16px Arial";
+    ctx.fillText("AN INITIATIVE BY ISHCONNECT", 64, 105);
+    roundRect(915, 48, 220, 42, 21);
+    ctx.fillStyle = "rgba(244,199,68,.12)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(244,199,68,.5)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = "#f4c744";
+    ctx.font = "bold 15px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("ACTIVE MEMBER", 1025, 75);
+    ctx.textAlign = "left";
+
+    roundRect(64, 165, 170, 170, 34);
+    ctx.save();
+    ctx.clip();
     const photo = user.profile?.photoUrl;
     if (photo) {
       try {
-        const image = new Image(); image.crossOrigin = "anonymous"; image.src = photo;
-        await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error("Profile image could not be loaded.")); });
-        ctx.save(); ctx.beginPath(); ctx.arc(170, 335, 92, 0, Math.PI * 2); ctx.clip(); ctx.drawImage(image, 78, 243, 184, 184); ctx.restore();
-      } catch { ctx.fillStyle = "#fed7aa"; ctx.beginPath(); ctx.arc(170, 335, 92, 0, Math.PI * 2); ctx.fill(); }
+        const image = new Image();
+        image.crossOrigin = "anonymous";
+        image.src = photo;
+        await new Promise<void>((resolve, reject) => {
+          image.onload = () => resolve();
+          image.onerror = () => reject(new Error("Profile image could not be loaded."));
+        });
+        ctx.drawImage(image, 64, 165, 170, 170);
+      } catch {
+        ctx.fillStyle = "#51447e";
+        ctx.fillRect(64, 165, 170, 170);
+        ctx.fillStyle = "#f4c744";
+        ctx.font = "bold 76px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(user.name.slice(0, 1).toUpperCase(), 149, 273);
+        ctx.textAlign = "left";
+      }
     } else {
-      ctx.fillStyle = "#fed7aa"; ctx.beginPath(); ctx.arc(170, 335, 92, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#9a3412"; ctx.font = "bold 72px Arial"; ctx.textAlign = "center"; ctx.fillText(user.name.slice(0, 1).toUpperCase(), 170, 360); ctx.textAlign = "left";
+      ctx.fillStyle = "#51447e";
+      ctx.fillRect(64, 165, 170, 170);
+      ctx.fillStyle = "#f4c744";
+      ctx.font = "bold 76px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(user.name.slice(0, 1).toUpperCase(), 149, 273);
+      ctx.textAlign = "left";
     }
-    ctx.fillStyle = "#292524"; ctx.font = "bold 42px Arial"; ctx.fillText(user.name, 310, 295);
-    ctx.fillStyle = "#78716c"; ctx.font = "24px Arial"; ctx.fillText(user.profile?.interests?.slice(0, 3).join(" · ") || "Technology learner", 310, 345);
-    ctx.fillStyle = "#c2410c"; ctx.font = "bold 18px Arial"; ctx.fillText("MEMBER ID", 310, 420);
-    ctx.fillStyle = "#292524"; ctx.font = "24px Arial"; ctx.fillText(user.memberId ?? "", 310, 455);
-    ctx.fillStyle = "#c2410c"; ctx.font = "bold 18px Arial"; ctx.fillText("MEMBERSHIP STATUS", 310, 520);
-    ctx.fillStyle = "#292524"; ctx.font = "24px Arial"; ctx.fillText("ACTIVE MEMBER", 310, 555);
-    if (user.joinedAt) { ctx.fillStyle = "#78716c"; ctx.font = "18px Arial"; ctx.fillText(`MEMBER SINCE ${new Date(user.joinedAt).toLocaleDateString("en", { month: "long", year: "numeric" })}`, 310, 605); }
-    const qrImage = new Image(); qrImage.src = qr;
-    await new Promise<void>((resolve) => { qrImage.onload = () => resolve(); });
-    ctx.drawImage(qrImage, 900, 410, 210, 210);
-    ctx.fillStyle = "#78716c"; ctx.font = "16px Arial"; ctx.textAlign = "center"; ctx.fillText("Scan to view profile", 1005, 644); ctx.textAlign = "left";
+    ctx.restore();
+    ctx.strokeStyle = "rgba(255,255,255,.25)";
+    ctx.lineWidth = 2;
+    roundRect(64, 165, 170, 170, 34);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(255,255,255,.52)";
+    ctx.font = "bold 16px Arial";
+    ctx.fillText("DEVQUEENS MEMBER", 280, 203);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 46px Arial";
+    const fittedName = user.name.length > 23 ? `${user.name.slice(0, 21)}…` : user.name;
+    ctx.fillText(fittedName, 280, 263);
+    ctx.fillStyle = "rgba(255,255,255,.7)";
+    ctx.font = "23px Arial";
+    const interests = user.profile?.interests?.slice(0, 3).join(" · ") || "Technology learner";
+    ctx.fillText(interests.length > 48 ? `${interests.slice(0, 45)}…` : interests, 280, 305);
+
+    ctx.strokeStyle = "rgba(255,255,255,.16)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(64, 390);
+    ctx.lineTo(1136, 390);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,.5)";
+    ctx.font = "bold 15px Arial";
+    ctx.fillText("MEMBER ID", 64, 435);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 25px monospace";
+    ctx.fillText(user.memberId ?? "", 64, 472);
+    ctx.fillStyle = "rgba(255,255,255,.5)";
+    ctx.font = "bold 15px Arial";
+    ctx.fillText("MEMBER SINCE", 64, 530);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "22px Arial";
+    ctx.fillText(user.joinedAt ? new Date(user.joinedAt).toLocaleDateString("en", { month: "long", year: "numeric" }) : "2026", 64, 567);
+
+    const qrImage = new Image();
+    qrImage.src = qr;
+    await new Promise<void>((resolve, reject) => {
+      qrImage.onload = () => resolve();
+      qrImage.onerror = () => reject(new Error("Profile QR code could not be loaded."));
+    });
+    roundRect(906, 412, 230, 230, 18);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    ctx.drawImage(qrImage, 924, 430, 194, 194);
+    ctx.fillStyle = "rgba(255,255,255,.62)";
+    ctx.font = "16px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("SCAN TO VIEW PROFILE", 1021, 675);
+    ctx.textAlign = "left";
   }, [qr, user]);
 
   useEffect(() => { if (qr) void drawCard(); }, [qr, drawCard]);
@@ -210,25 +309,54 @@ function MembershipCardPage({ user }: { user: SessionUser }) {
     <>
       <PageHeading eyebrow="Your digital identity" title="Membership card" description="A shareable identity card for your DevQueens community membership." />
       {error && <p role="status" className="notice-error mb-4">{error}</p>}
-      {profileUrl && <div id="membership-card-print" className="max-w-3xl rounded-2xl border border-orange-100 bg-white p-5 md:p-8">
-        <div className="overflow-hidden rounded-xl border border-orange-100 bg-[#fff7ed]">
-          <div className="h-2 bg-orange-500" />
-          <div className="grid gap-5 p-6 sm:grid-cols-[100px_1fr_100px] sm:items-center md:gap-8 md:p-8">
-            {user.profile?.photoUrl ? <img src={user.profile.photoUrl} alt={user.name} className="h-24 w-24 rounded-full object-cover" /> : <div className="flex h-24 w-24 items-center justify-center rounded-full bg-orange-200 font-display text-3xl font-bold text-orange-900">{user.name.slice(0, 1)}</div>}
-            <div><p className="text-xs font-bold tracking-widest text-orange-800">DEVQUEENS · ISHCONNECT</p><h2 className="mt-2 font-display text-2xl font-bold">{user.name}</h2><p className="mt-1 text-sm text-stone-600">{user.profile?.interests?.slice(0, 3).join(" · ") || "Technology learner"}</p><p className="mt-4 text-xs text-stone-500">Member ID <strong className="ml-1 text-stone-800">{user.memberId}</strong></p><p className="mt-1 text-xs text-stone-500">Active member · Since {user.joinedAt ? new Date(user.joinedAt).toLocaleDateString("en", { month: "short", year: "numeric" }) : "2026"}</p></div>
-            {qr && <img src={qr} alt="QR code linking to your public profile" className="h-24 w-24 rounded bg-white p-1" />}
+      {profileUrl && <div id="membership-card-print" className="max-w-3xl rounded-2xl border border-orange-100 bg-white p-4 md:p-6">
+        <div className="membership-card-face relative mx-auto flex aspect-[1.585/1] w-full flex-col justify-between overflow-hidden rounded-[1.15rem] border border-white/15 bg-[#28213f] p-3 text-white shadow-xl shadow-[#34295d]/20 sm:rounded-[1.5rem] sm:p-5 md:p-7">
+          <div aria-hidden="true" className="absolute -right-14 -top-20 h-56 w-56 rounded-full border-[34px] border-white/[.06]" />
+          <div aria-hidden="true" className="absolute -bottom-28 left-[42%] h-56 w-56 rounded-full bg-[#51447e]/60 blur-2xl" />
+          <div aria-hidden="true" className="absolute inset-y-0 left-0 w-1.5 bg-[#f4c744]" />
+          <div className="relative flex h-full flex-col justify-between">
+            <div className="flex items-center justify-between gap-3 border-b border-white/15 pb-2 sm:pb-3">
+              <div className="flex items-center gap-2">
+                <DevQueensLogo variant="footer" className="h-7 w-7 rounded-full object-cover sm:h-9 sm:w-9" />
+                <div>
+                  <p className="font-display text-xs font-bold tracking-wide sm:text-sm">DEVQUEENS</p>
+                  <p className="mt-0.5 text-[7px] uppercase tracking-[.13em] text-white/55 sm:text-[9px]">An initiative by IshConnect</p>
+                </div>
+              </div>
+              <span className="rounded-full border border-[#f4c744]/40 bg-[#f4c744]/10 px-2 py-1 text-[7px] font-bold uppercase tracking-[.1em] text-[#f4c744] sm:px-2.5 sm:text-[9px] sm:tracking-[.13em]">Active member</span>
+            </div>
+            <div className="my-2 grid grid-cols-[1fr_auto] items-center gap-2 sm:my-3 sm:gap-5">
+              <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+                {user.profile?.photoUrl ? <img src={user.profile.photoUrl} alt={user.name} className="h-12 w-12 shrink-0 rounded-xl object-cover sm:h-16 sm:w-16 sm:rounded-2xl md:h-[4.5rem] md:w-[4.5rem]" /> : <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#51447e] font-display text-xl font-bold text-[#f4c744] sm:h-16 sm:w-16 sm:rounded-2xl sm:text-2xl md:h-[4.5rem] md:w-[4.5rem]">{user.name.slice(0, 1).toUpperCase()}</div>}
+                <div className="min-w-0">
+                  <p className="text-[7px] font-bold uppercase tracking-[.17em] text-white/50 sm:text-[9px]">DevQueens member</p>
+                  <p className="mt-0.5 truncate font-display text-base font-bold tracking-tight sm:mt-1 sm:text-xl md:text-2xl">{user.name}</p>
+                  <p className="mt-0.5 truncate text-[9px] text-white/65 sm:mt-1 sm:text-xs">{user.profile?.interests?.slice(0, 3).join(" · ") || "Technology learner"}</p>
+                </div>
+              </div>
+              {qr && <div className="rounded-lg bg-white p-1 shadow-sm sm:rounded-xl sm:p-1.5"><img src={qr} alt="QR code linking to your public profile" className="h-12 w-12 sm:h-[68px] sm:w-[68px] md:h-[88px] md:w-[88px]" /></div>}
+            </div>
+            <div className="flex flex-wrap items-end justify-between gap-2 border-t border-white/15 pt-2 sm:gap-3 sm:pt-3">
+              <div>
+                <p className="text-[7px] font-bold uppercase tracking-[.15em] text-white/45 sm:text-[9px]">Member ID</p>
+                <p className="mt-0.5 font-mono text-[9px] font-semibold tracking-[.1em] text-white/90 sm:mt-1 sm:text-xs">{user.memberId}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[7px] font-bold uppercase tracking-[.15em] text-white/45 sm:text-[9px]">Member since</p>
+                <p className="mt-0.5 text-[9px] font-semibold text-white/90 sm:mt-1 sm:text-xs">{user.joinedAt ? new Date(user.joinedAt).toLocaleDateString("en", { month: "long", year: "numeric" }) : "2026"}</p>
+              </div>
+            </div>
           </div>
-          <div className="border-t border-orange-100 px-6 py-3 text-xs text-stone-500 md:px-8">{profileUrl}</div>
         </div>
         <canvas ref={canvasRef} className="hidden" />
         <div id="membership-card-actions" className="mt-5 flex flex-wrap gap-2">
           <button onClick={() => void downloadPng()} className="btn-brand"><Download size={15} /> Download card PNG</button>
-          <button onClick={() => window.print()} className="btn-outline-brand">Print / save PDF</button>
+          <button onClick={() => window.print()} className="btn-outline-brand">Print / save card-size PDF</button>
           <button onClick={() => void share()} className="btn-outline-brand"><Share2 size={15} /> Share</button>
           <a target="_blank" rel="noreferrer" href={`https://wa.me/?text=${encodeURIComponent(`Connect with me on DevQueens: ${profileUrl}`)}`} className="btn-outline-brand">WhatsApp</a>
           <a target="_blank" rel="noreferrer" href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(profileUrl)}`} className="btn-outline-brand">LinkedIn</a>
         </div>
-        <p className="mt-3 text-xs text-stone-400">The PNG is sized for social profiles. “Print / save PDF” opens your browser's print dialogue for a PDF copy.</p>
+        <p className="mt-3 text-xs text-stone-400">{profileUrl} · Print / save PDF is formatted to standard CR80 ID-card size (85.6 x 54 mm). For physical printing, use Actual size / 100% scale. The PNG is a high-resolution digital copy.</p>
       </div>}
       {!profileUrl && !error && <p className="text-sm text-stone-500">Preparing your card…</p>}
     </>

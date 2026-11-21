@@ -9,6 +9,7 @@
     "start": "node server-dist/index.js",
     "start:api": "node server-dist/index.js",
     "seed:admin": "node server-dist/seed-admin.js",
+    "reset:admin-password": "node server-dist/reset-admin-password.js",
     "postinstall": "npm run build:api",
     "build:web": "vite build",
     "build:api": "tsc -p tsconfig.server.build.json",

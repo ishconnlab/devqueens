@@ -444,16 +444,18 @@ function SettingsPage() {
   const [communityUrl, setCommunityUrl] = useState("");
   const [communityEnabled, setCommunityEnabled] = useState(true);
   const [adminAccountCreationEnabled, setAdminAccountCreationEnabled] = useState(true);
+  const [additionalAdminCreated, setAdditionalAdminCreated] = useState(false);
   const [communityLoading, setCommunityLoading] = useState(true);
   const [communityBusy, setCommunityBusy] = useState(false);
   const [communityError, setCommunityError] = useState("");
   const [communityNotice, setCommunityNotice] = useState("");
   useEffect(() => {
-    api<{ settings: Record<string, unknown> }>('/admin/settings')
+    api<{ settings: Record<string, unknown>; adminAccountCreationUsed: boolean }>('/admin/settings')
       .then((result) => {
         setText(JSON.stringify(result.settings, null, 2));
         const adminSetting = result.settings.adminAccountCreationEnabled;
         if (typeof adminSetting === 'boolean') setAdminAccountCreationEnabled(adminSetting);
+        setAdditionalAdminCreated(result.adminAccountCreationUsed);
       })
       .catch((cause) => setError(cause.message));
     api<{ url: string; enabled: boolean }>('/community-link')
@@ -489,6 +491,8 @@ function SettingsPage() {
       setAdminName("");
       setAdminEmail("");
       setAdminPassword("");
+      setAdminAccountCreationEnabled(false);
+      setAdditionalAdminCreated(true);
       setAdminCreateNotice("Admin account created. The new administrator can sign in at /admin.");
     } catch (cause) {
       setAdminCreateError(cause instanceof Error ? cause.message : "The admin account could not be created.");
@@ -523,22 +527,23 @@ function SettingsPage() {
     </section>
     <section className="mb-6 max-w-3xl rounded-xl border border-orange-100 bg-white p-5">
       <h2 className="font-display text-lg font-bold text-stone-900">Admin access controls</h2>
-      <p className="mt-1 text-sm text-stone-500">Allow or block admin account creation from authenticated administrators. Public member registration remains independent.</p>
+      <p className="mt-1 text-sm text-stone-500">The current admin can create one additional admin account. After it is created, no further admin accounts can be added. Public member registration remains independent.</p>
+      {additionalAdminCreated && <p role="status" className="notice-success mt-4">The one additional admin account has been created. Admin account creation is permanently locked.</p>}
+      {adminCreateNotice && <p role="status" className="notice-success mt-4">{adminCreateNotice}</p>}
       <form onSubmit={saveAdminAccountCreation} className="mt-4 space-y-4">
         <label className="flex items-center gap-3 text-sm font-medium text-stone-700">
-          <input type="checkbox" checked={adminAccountCreationEnabled} onChange={(event) => setAdminAccountCreationEnabled(event.target.checked)} className="h-4 w-4 accent-[#34295d]" />
+          <input type="checkbox" checked={adminAccountCreationEnabled} disabled={additionalAdminCreated} onChange={(event) => setAdminAccountCreationEnabled(event.target.checked)} className="h-4 w-4 accent-[#34295d] disabled:opacity-50" />
           Enable admin account creation
         </label>
-        <button className="btn-brand"><Save size={15} /> Save admin access</button>
+        {!additionalAdminCreated && <button className="btn-brand"><Save size={15} /> Save admin access</button>}
       </form>
-      {adminAccountCreationEnabled && <form onSubmit={createAdminAccount} className="mt-5 grid gap-3 border-t border-stone-100 pt-5 sm:grid-cols-2">
+      {adminAccountCreationEnabled && !additionalAdminCreated && <form onSubmit={createAdminAccount} className="mt-5 grid gap-3 border-t border-stone-100 pt-5 sm:grid-cols-2">
         <h3 className="font-display font-bold sm:col-span-2">Create an admin account</h3>
         <Field label="Full name"><input required minLength={2} maxLength={100} autoComplete="name" value={adminName} onChange={(event) => setAdminName(event.target.value)} className="form-input" /></Field>
         <Field label="Admin email"><input required type="email" maxLength={254} autoComplete="email" value={adminEmail} onChange={(event) => setAdminEmail(event.target.value)} className="form-input" /></Field>
         <Field label="Password"><input required type="password" minLength={10} maxLength={128} pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{10,128}" autoComplete="new-password" value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} className="form-input" /></Field>
         <p className="self-end text-xs text-stone-500">At least 10 characters, including uppercase, lowercase, and a number.</p>
         {adminCreateError && <p role="alert" className="notice-error sm:col-span-2">{adminCreateError}</p>}
-        {adminCreateNotice && <p role="status" className="notice-success sm:col-span-2">{adminCreateNotice}</p>}
         <button disabled={adminCreateBusy} className="btn-brand disabled:opacity-60 sm:col-span-2">{adminCreateBusy ? "Creating account…" : "Create admin account"}</button>
       </form>}
     </section>

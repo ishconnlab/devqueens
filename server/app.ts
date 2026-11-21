@@ -26,12 +26,31 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
 const contentKinds = ["team", "badge", "alumni", "achiever", "partner", "gallery", "testimonial"] as const;
 type ContentKind = (typeof contentKinds)[number];
 const defaultCommunityJoinUrl = "https://chat.whatsapp.com/LllvTuja4xH7ZZBQXav73J";
+const adminAccountCreationKey = "adminAccountCreationEnabled";
 const communityLinkSchema = z.object({
   url: z.string().url().max(2048).refine((value) => {
     try { return new URL(value).protocol === "https:"; } catch { return false; }
   }, "Community link must use HTTPS."),
   enabled: z.boolean(),
 });
+
+async function ensureAdminAccountCreationSetting(adminCount: number) {
+  try {
+    await PlatformSettings.updateOne(
+      { key: adminAccountCreationKey },
+      {
+        $setOnInsert: {
+          value: adminCount < 2,
+          additionalAdminCreated: adminCount >= 2,
+        },
+      },
+      { upsert: true },
+    );
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === 11000) return;
+    throw error;
+  }
+}
 
 cloudinary.config({
   cloud_name: config.CLOUDINARY_CLOUD_NAME,
@@ -148,20 +167,38 @@ router.post("/auth/register", authRateLimit, async (req, res, next) => {
 
 router.post("/auth/admin-create", authRateLimit, requireAdmin, async (req, res, next) => {
   try {
-    const adminCreationSetting = await PlatformSettings.findOne({ key: "adminAccountCreationEnabled" }).lean();
-    if (adminCreationSetting?.value === false) {
-      return sendError(res, 403, "Admin account creation is currently disabled by an administrator.");
-    }
     const data = parseOrRespond(adminRegistrationSchema, req.body, res);
     if (!data) return;
     const email = data.email.toLowerCase();
     if (await User.exists({ email })) return sendError(res, 409, "An account with this email already exists.");
-    const user = await User.create({
-      name: data.name,
-      email,
-      passwordHash: await bcrypt.hash(data.password, 12),
-      role: "admin",
-    });
+    const adminCount = await User.countDocuments({ role: "admin" });
+    await ensureAdminAccountCreationSetting(adminCount);
+    if (adminCount >= 2) {
+      await PlatformSettings.updateOne(
+        { key: adminAccountCreationKey },
+        { $set: { value: false, additionalAdminCreated: true } },
+      );
+      return sendError(res, 403, "The one additional admin account has already been created.");
+    }
+    const passwordHash = await bcrypt.hash(data.password, 12);
+    const claimedSlot = await PlatformSettings.findOneAndUpdate(
+      { key: adminAccountCreationKey, value: true, additionalAdminCreated: { $ne: true } },
+      { $set: { value: false, additionalAdminCreated: true } },
+      { new: false },
+    );
+    if (!claimedSlot) return sendError(res, 403, "Admin account creation is disabled or the one-time admin slot has been used.");
+    let user;
+    try {
+      user = await User.create({ name: data.name, email, passwordHash, role: "admin" });
+    } catch (error) {
+      if (await User.countDocuments({ role: "admin" }) < 2) {
+        await PlatformSettings.updateOne(
+          { key: adminAccountCreationKey, additionalAdminCreated: true },
+          { $set: { value: true, additionalAdminCreated: false } },
+        );
+      }
+      throw error;
+    }
     res.status(201).json({ user: { id: user.id, name: user.name, email: user.email, role: user.role, memberId: user.memberId } });
   } catch (error) {
     next(error);
@@ -1120,8 +1157,20 @@ router.post("/admin/upload", requireAdmin, upload.single("image"), async (req, r
 
 router.get("/admin/settings", requireAdmin, async (_req, res, next) => {
   try {
+    const adminCount = await User.countDocuments({ role: "admin" });
+    await ensureAdminAccountCreationSetting(adminCount);
+    if (adminCount >= 2) {
+      await PlatformSettings.updateOne(
+        { key: adminAccountCreationKey },
+        { $set: { value: false, additionalAdminCreated: true } },
+      );
+    }
     const settings = await PlatformSettings.find().lean();
-    res.json({ settings: Object.fromEntries(settings.map((item) => [item.key, item.value])) });
+    const adminCreationSetting = settings.find((item) => item.key === adminAccountCreationKey);
+    res.json({
+      settings: Object.fromEntries(settings.map((item) => [item.key, item.value])),
+      adminAccountCreationUsed: adminCreationSetting?.additionalAdminCreated === true || adminCount >= 2,
+    });
   } catch (error) {
     next(error);
   }
@@ -1161,9 +1210,36 @@ router.put("/admin/settings", requireAdmin, async (req, res, next) => {
     if (parsed.data.adminAccountCreationEnabled !== undefined && typeof parsed.data.adminAccountCreationEnabled !== "boolean") {
       return sendError(res, 400, "Admin account creation setting must be a boolean.");
     }
-    const updates = Object.entries(parsed.data).map(([key, value]) => PlatformSettings.findOneAndUpdate(
-      { key }, { value }, { upsert: true, new: true, runValidators: true },
-    ));
+    if (typeof parsed.data.adminAccountCreationEnabled === "boolean") {
+      const adminCount = await User.countDocuments({ role: "admin" });
+      await ensureAdminAccountCreationSetting(adminCount);
+      if (parsed.data.adminAccountCreationEnabled) {
+        if (adminCount >= 2) {
+          await PlatformSettings.updateOne(
+            { key: adminAccountCreationKey },
+            { $set: { value: false, additionalAdminCreated: true } },
+          );
+          return sendError(res, 403, "Admin account creation cannot be re-enabled after the additional admin account has been created.");
+        }
+        const setting = await PlatformSettings.findOneAndUpdate(
+          { key: adminAccountCreationKey, additionalAdminCreated: { $ne: true } },
+          { $set: { value: true } },
+          { new: true },
+        );
+        if (!setting) return sendError(res, 403, "Admin account creation cannot be re-enabled after the additional admin account has been created.");
+      } else {
+        await PlatformSettings.updateOne(
+          { key: adminAccountCreationKey },
+          { $set: { value: false } },
+          { upsert: true },
+        );
+      }
+    }
+    const updates = Object.entries(parsed.data)
+      .filter(([key]) => key !== "adminAccountCreationEnabled")
+      .map(([key, value]) => PlatformSettings.findOneAndUpdate(
+        { key }, { value }, { upsert: true, new: true, runValidators: true },
+      ));
     await Promise.all(updates);
     res.json({ settings: parsed.data });
   } catch (error) {

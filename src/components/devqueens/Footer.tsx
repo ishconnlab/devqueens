@@ -1,5 +1,5 @@
-import { ArrowUp, Globe, Linkedin, Mail, MessageCircle } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { ArrowUp, Globe, Linkedin, Mail, MessageCircle, ShieldCheck } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import DevQueensLogo, { IshConnectLink } from "./DevQueensLogo";
 import CommunityJoinButton from "./CommunityJoinButton";
 
@@ -75,7 +75,12 @@ export default function Footer() {
         <div className="divider mt-10 mb-6 bg-[hsl(var(--background)/0.1)]" />
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <p className="text-xs text-[hsl(var(--background)/0.35)]">&copy; {new Date().getFullYear()} DevQueens — An initiative by IshConnect.</p>
-          <IshConnectLink className="text-xs text-[hsl(var(--background)/0.35)] hover:text-[hsl(var(--background))] transition-colors duration-300">Visit IshConnect <ArrowUp size={11} className="ml-1 inline rotate-45" /></IshConnectLink>
+          <div className="flex items-center gap-5">
+            <Link to="/admin" className="inline-flex items-center gap-1.5 text-xs text-[hsl(var(--background)/0.35)] transition-colors duration-300 hover:text-[hsl(var(--background))]">
+              <ShieldCheck size={12} /> Admin
+            </Link>
+            <IshConnectLink className="text-xs text-[hsl(var(--background)/0.35)] hover:text-[hsl(var(--background))] transition-colors duration-300">Visit IshConnect <ArrowUp size={11} className="ml-1 inline rotate-45" /></IshConnectLink>
+          </div>
         </div>
       </div>
     </footer>

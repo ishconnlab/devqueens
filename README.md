@@ -48,6 +48,16 @@ npm run seed:admin
 
 The seed command creates the administrator only if the email is unused. It refuses to promote an existing member account. There is no public admin registration endpoint.
 
+### Reset an administrator password
+
+Set `ADMIN_EMAIL` and the new `ADMIN_PASSWORD` in `.env`, then run:
+
+```sh
+npm run reset:admin-password
+```
+
+This command only updates an existing account with the `admin` role. It does not use public password-reset links or promote a member account.
+
 ## Environment variables
 
 | Variable | Required | Purpose |
@@ -76,7 +86,7 @@ Profile, community-post and chat image uploads return a configuration error unti
 - Member: `/portal`, `/portal/community`, `/portal/analytics`, `/portal/inbox`, `/portal/courses`, `/portal/courses/:slug`, `/portal/profile`, `/portal/certificates`, `/portal/card`
 - Administrator: `/admin` and sections for members, inbox, courses, assessments, certificates, team, badges, alumni, top achievers, partners, gallery, testimonials, reports and settings
 
-Member registration asks for the member's name, email, country, school or other organization, district, and age range (not date of birth). These registration details are stored privately and are not included on public member profiles or verification pages. Public member registration and sign-in remain available independently at `/register` and `/login`. Administrators use `/admin` as their single entry point to sign in. After sign-in, administrators can enable or disable additional admin account creation and create accounts from Admin Settings. Admin creation requires an existing administrator session; no public admin registration endpoint is exposed. Bootstrap the first administrator only with the seed command described above. A member cannot access administrator APIs by changing a URL.
+Member registration asks for the member's name, email, country, school or other organization, district, and age range (not date of birth). These registration details are stored privately and are not included on public member profiles or verification pages. Public member registration and sign-in remain available independently at `/register` and `/login`. Administrators use `/admin` as their single entry point to sign in. After sign-in, an administrator can enable or disable creation of one additional administrator from Admin Settings. Once that account is created, admin-account creation is permanently disabled. Admin creation requires an existing administrator session; no public admin registration endpoint is exposed. Bootstrap the first administrator only with the seed command described above. A member cannot access administrator APIs by changing a URL.
 
 Course completion and assessment eligibility are checked by the API. Multiple-choice and true/false answers are graded server-side; practical responses require administrator review. Certificates are issued only after required course progress and a passing assessment. Certificate PDFs include a public verification QR code and are downloadable by the certificate owner or an administrator. Public member profiles honor the member's visibility setting and expose only public profile fields, community posts, and non-revoked course completions. Members can share profile links, follow other public members, publish text/image posts, comment and like posts, and review follower, post, like, and comment metrics in their analytics dashboard. Authenticated members can start a private chat with the admin team; admins can reply and send community-wide inbox announcements. Chats update automatically while open and support emoji and image attachments. Administrators manage the public alumni, achiever, gallery, and testimonial stories from their corresponding content sections.
 
