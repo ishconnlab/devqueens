@@ -86,6 +86,28 @@ describe("AdminPortal", () => {
     });
   }
 
+  it.each([
+    ["/admin/team", "Team member name", "e.g. Amina N."],
+    ["/admin/badges", "Badge title", "e.g. Web Development"],
+    ["/admin/alumni", "Story title", "e.g. Building a future in technology"],
+    ["/admin/achiever", "Achievement title", "e.g. Completed a first web project"],
+    ["/admin/partner", "Partner name", "e.g. IshConnect"],
+    ["/admin/gallery", "Image title", "e.g. Girls in technology workshop"],
+    ["/admin/testimonial", "Person's name", "e.g. Amina N."],
+  ])("shows labeled placeholder fields instead of a JSON editor at %s", async (path, label, placeholder) => {
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/admin/*" element={<AdminPortal />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole("textbox", { name: label })).toHaveAttribute("placeholder", placeholder);
+    expect(screen.queryByRole("textbox", { name: "Record data" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Edit this record as JSON/)).not.toBeInTheDocument();
+  });
+
   it("shows a shortcut for every admin page on the overview", async () => {
     render(
       <MemoryRouter initialEntries={["/admin"]}>

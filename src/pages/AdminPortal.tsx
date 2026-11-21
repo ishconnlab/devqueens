@@ -365,23 +365,149 @@ function CertificatesManager() {
   </>;
 }
 
+type ContentField = {
+  key: string;
+  label: string;
+  placeholder: string;
+  inputType?: "text" | "url" | "date";
+  multiline?: boolean;
+  list?: boolean;
+  required?: boolean;
+};
+
+const contentFields: Record<string, ContentField[]> = {
+  team: [
+    { key: "name", label: "Team member name", placeholder: "e.g. Amina N.", required: true },
+    { key: "role", label: "Role or title", placeholder: "e.g. Programme Coordinator" },
+    { key: "bio", label: "Biography", placeholder: "Share a short introduction.", multiline: true },
+    { key: "photoUrl", label: "Photo URL", placeholder: "https://example.com/photo.jpg", inputType: "url" },
+    { key: "socialLinks.linkedin", label: "LinkedIn profile", placeholder: "https://www.linkedin.com/in/…", inputType: "url" },
+    { key: "socialLinks.github", label: "GitHub profile", placeholder: "https://github.com/…", inputType: "url" },
+    { key: "socialLinks.website", label: "Website", placeholder: "https://example.com", inputType: "url" },
+  ],
+  badge: [
+    { key: "title", label: "Badge title", placeholder: "e.g. Web Development", required: true },
+    { key: "description", label: "Description", placeholder: "What does this badge recognize?", multiline: true },
+    { key: "category", label: "Category", placeholder: "e.g. Technology skills" },
+    { key: "imageUrl", label: "Badge image URL", placeholder: "https://example.com/badge.png", inputType: "url" },
+  ],
+  alumni: [
+    { key: "title", label: "Story title", placeholder: "e.g. Building a future in technology", required: true },
+    { key: "name", label: "Member name", placeholder: "e.g. Amina N." },
+    { key: "role", label: "Role or programme", placeholder: "e.g. DevQueens alumna" },
+    { key: "bio", label: "Story or biography", placeholder: "Describe this member's journey.", multiline: true },
+    { key: "quote", label: "Quote", placeholder: "A quote shared by the member.", multiline: true },
+    { key: "imageUrl", label: "Story image URL", placeholder: "https://example.com/story.jpg", inputType: "url" },
+    { key: "memberId", label: "Member ID", placeholder: "DQ-YYYY-XXXXXXXX" },
+    { key: "certificateUrl", label: "Certificate URL", placeholder: "https://example.com/certificate", inputType: "url" },
+    { key: "url", label: "More information URL", placeholder: "https://example.com/story", inputType: "url" },
+    { key: "badges", label: "Badges", placeholder: "Web Development, Digital Skills", list: true },
+    { key: "date", label: "Date", placeholder: "Select a date", inputType: "date" },
+  ],
+  achiever: [
+    { key: "title", label: "Achievement title", placeholder: "e.g. Completed a first web project", required: true },
+    { key: "name", label: "Member name", placeholder: "e.g. Amina N." },
+    { key: "category", label: "Achievement category", placeholder: "e.g. Learning milestone" },
+    { key: "bio", label: "Achievement details", placeholder: "Describe the achievement.", multiline: true },
+    { key: "quote", label: "Member quote", placeholder: "A quote shared by the member.", multiline: true },
+    { key: "imageUrl", label: "Achievement image URL", placeholder: "https://example.com/achievement.jpg", inputType: "url" },
+    { key: "memberId", label: "Member ID", placeholder: "DQ-YYYY-XXXXXXXX" },
+    { key: "certificateUrl", label: "Certificate URL", placeholder: "https://example.com/certificate", inputType: "url" },
+    { key: "url", label: "More information URL", placeholder: "https://example.com/achievement", inputType: "url" },
+    { key: "badges", label: "Badges", placeholder: "Web Development, Digital Skills", list: true },
+    { key: "date", label: "Date", placeholder: "Select a date", inputType: "date" },
+  ],
+  partner: [
+    { key: "name", label: "Partner name", placeholder: "e.g. IshConnect", required: true },
+    { key: "category", label: "Partnership type", placeholder: "e.g. Learning partner" },
+    { key: "description", label: "Description", placeholder: "Describe how this partner supports DevQueens.", multiline: true },
+    { key: "imageUrl", label: "Logo or image URL", placeholder: "https://example.com/logo.png", inputType: "url" },
+    { key: "url", label: "Website URL", placeholder: "https://example.com", inputType: "url" },
+  ],
+  gallery: [
+    { key: "title", label: "Image title", placeholder: "e.g. Girls in technology workshop", required: true },
+    { key: "description", label: "Caption", placeholder: "Add a short caption.", multiline: true },
+    { key: "imageUrl", label: "Image URL", placeholder: "https://example.com/gallery.jpg", inputType: "url" },
+    { key: "altText", label: "Image description (alt text)", placeholder: "Describe the image for accessibility." },
+    { key: "date", label: "Date", placeholder: "Select a date", inputType: "date" },
+  ],
+  testimonial: [
+    { key: "name", label: "Person's name", placeholder: "e.g. Amina N.", required: true },
+    { key: "role", label: "Role or relationship", placeholder: "e.g. DevQueens learner" },
+    { key: "quote", label: "Testimonial", placeholder: "Enter the words shared by this person.", multiline: true, required: true },
+    { key: "photoUrl", label: "Photo URL", placeholder: "https://example.com/photo.jpg", inputType: "url" },
+    { key: "date", label: "Date", placeholder: "Select a date", inputType: "date" },
+  ],
+};
+
+const contentImageFields: Record<string, string> = {
+  team: "photoUrl",
+  badge: "imageUrl",
+  alumni: "imageUrl",
+  achiever: "imageUrl",
+  partner: "imageUrl",
+  gallery: "imageUrl",
+  testimonial: "photoUrl",
+};
+
+function readContentField(data: Record<string, unknown>, field: ContentField) {
+  const value = field.key.split(".").reduce<unknown>((current, key) => {
+    return current && typeof current === "object" ? (current as Record<string, unknown>)[key] : undefined;
+  }, data);
+  if (field.list) return Array.isArray(value) ? value.join(", ") : typeof value === "string" ? value : "";
+  if (field.inputType === "date" && typeof value === "string") return value.slice(0, 10);
+  return typeof value === "string" || typeof value === "number" ? String(value) : "";
+}
+
+function buildContentData(kind: string, values: Record<string, string>, original: Record<string, unknown> = {}) {
+  const data = { ...original };
+  for (const field of contentFields[kind] ?? []) {
+    const rawValue = values[field.key]?.trim() ?? "";
+    const value: unknown = field.list
+      ? rawValue.split(",").map((item) => item.trim()).filter(Boolean)
+      : rawValue;
+    const [parentKey, childKey] = field.key.split(".");
+    if (childKey) {
+      const parent = data[parentKey] && typeof data[parentKey] === "object" && !Array.isArray(data[parentKey])
+        ? { ...(data[parentKey] as Record<string, unknown>) }
+        : {};
+      if (rawValue) parent[childKey] = value;
+      else delete parent[childKey];
+      if (Object.keys(parent).length) data[parentKey] = parent;
+      else delete data[parentKey];
+    } else if (rawValue) {
+      data[field.key] = value;
+    } else {
+      delete data[field.key];
+    }
+  }
+  return data;
+}
+
 function ContentManager({ kind }: { kind: string }) {
   const [items, setItems] = useState<any[]>([]); const [selected, setSelected] = useState<any | null>(null);
-  const [json, setJson] = useState('{\n  "title": "",\n  "description": ""\n}');
+  const [values, setValues] = useState<Record<string, string>>({});
   const [published, setPublished] = useState(true); const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [busy, setBusy] = useState(false);
   const title = ({ team: "Team", badge: "Badges", alumni: "Alumni", achiever: "Top achievers", partner: "Partners", gallery: "Gallery", testimonial: "Testimonials" } as Record<string, string>)[kind] ?? "Content";
+  const fields = contentFields[kind] ?? [];
+  const imageField = contentImageFields[kind] ?? "imageUrl";
   const load = useCallback(async () => {
     try { const result = await api<{ items: any[] }>(`/admin/content/${kind}`); setItems(result.items); }
     catch (cause) { setError(cause instanceof Error ? cause.message : `${title} could not be loaded.`); }
   }, [kind, title]);
-  useEffect(() => { setItems([]); setSelected(null); void load(); }, [load]);
-  const edit = (item: any) => { setSelected(item); setJson(JSON.stringify(item.data, null, 2)); setPublished(item.published); };
-  const reset = () => { setSelected(null); setJson('{\n  "title": "",\n  "description": ""\n}'); setPublished(true); };
+  useEffect(() => { setItems([]); setSelected(null); setValues({}); setPublished(true); void load(); }, [load]);
+  const edit = (item: any) => {
+    setSelected(item);
+    setValues(Object.fromEntries(fields.map((field) => [field.key, readContentField(item.data, field)])));
+    setPublished(item.published);
+    setError("");
+    setNotice("");
+  };
+  const reset = () => { setSelected(null); setValues({}); setPublished(true); setError(""); setNotice(""); };
   const save = async (event: React.FormEvent) => {
     event.preventDefault(); setBusy(true); setError(""); setNotice("");
     try {
-      const data = JSON.parse(json);
-      if (!data || Array.isArray(data) || typeof data !== "object") throw new Error("Content data must be a JSON object.");
+      const data = buildContentData(kind, values, selected?.data ?? {});
       const body = { data, published };
       if (selected) await api(`/admin/content/${kind}/${selected._id}`, { method: "PUT", body });
       else await api(`/admin/content/${kind}`, { method: "POST", body });
@@ -399,7 +525,9 @@ function ContentManager({ kind }: { kind: string }) {
     const body = new FormData(); body.append("image", file);
     try {
       const result = await api<{ url: string }>("/admin/upload", { method: "POST", body });
-      const data = JSON.parse(json); data.imageUrl = result.url; setJson(JSON.stringify(data, null, 2)); setNotice("Image uploaded. The URL was added to imageUrl.");
+      setValues((current) => ({ ...current, [imageField]: result.url }));
+      setNotice(`Image uploaded. The URL was added to ${imageField}.`);
+      setError("");
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Image upload failed."); }
   };
   return <>
@@ -414,9 +542,36 @@ function ContentManager({ kind }: { kind: string }) {
       </section>
       <form onSubmit={save} className="h-fit rounded-xl border border-orange-100 bg-white p-5">
         <div className="flex items-start justify-between"><div><p className="section-eyebrow">{selected ? "Update record" : "New record"}</p><h2 className="mt-1 font-display text-lg font-bold">{selected ? selected.data.title ?? "Edit content" : `Add ${title.toLowerCase().replace(/s$/, "")}`}</h2></div>{selected && <button type="button" onClick={reset} className="icon-delete" aria-label="Cancel edit"><X size={16} /></button>}</div>
-        <p className="mb-3 mt-2 text-xs leading-5 text-stone-500">Edit this record as JSON. Supported fields depend on the content type, for example title, name, role, bio, photoUrl/imageUrl, badges, quote, socialLinks, url, category and date.{(kind === "alumni" || kind === "achiever") && " To link a member card, include memberId (DQ-YYYY-XXXXXXXX) after confirming the member’s profile is public. Add completion details only when verified."}</p>
-        <label className="form-label">Image upload<input type="file" accept="image/*" onChange={(e) => void uploadImage(e.target.files?.[0])} className="form-input text-xs" /><span className="font-normal text-stone-400">Cloudinary upload · maximum 5 MB</span></label>
-        <label className="form-label mt-4">Record data<textarea required value={json} onChange={(e) => setJson(e.target.value)} className="form-input mt-1 min-h-64 font-mono text-xs leading-5" /></label>
+        <p className="mb-4 mt-2 text-xs leading-5 text-stone-500">{selected ? "Update the fields below. Any additional saved details will be preserved." : `Enter the ${title.toLowerCase()} details below.`}{(kind === "alumni" || kind === "achiever") && " To link a member card, enter the member ID (DQ-YYYY-XXXXXXXX) only after confirming the member’s profile is public. Add certificate details only when verified."}</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {fields.map((field) => (
+            <label key={field.key} className={`form-label ${field.multiline || field.key.startsWith("socialLinks.") ? "sm:col-span-2" : ""}`}>
+              {field.label}
+              {field.multiline ? (
+                <textarea
+                  required={field.required}
+                  value={values[field.key] ?? ""}
+                  onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))}
+                  placeholder={field.placeholder}
+                  rows={3}
+                  className="form-input mt-1"
+                />
+              ) : (
+                <input
+                  required={field.required}
+                  type={field.inputType ?? "text"}
+                  value={values[field.key] ?? ""}
+                  onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))}
+                  placeholder={field.placeholder}
+                  className="form-input mt-1"
+                />
+              )}
+              {field.list && <span className="font-normal text-stone-400">Separate items with commas.</span>}
+              {field.key === "memberId" && <span className="font-normal text-stone-400">Link only to a real member with a public profile.</span>}
+            </label>
+          ))}
+        </div>
+        <label className="form-label mt-4">Upload image<input type="file" accept="image/*" onChange={(event) => { void uploadImage(event.target.files?.[0]); event.target.value = ""; }} className="form-input text-xs" /><span className="font-normal text-stone-400">Cloudinary upload · maximum 5 MB. The uploaded URL fills {imageField}.</span></label>
         <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} className="accent-orange-600" /> Publish publicly</label>
         <div className="mt-5 flex flex-wrap gap-2"><button disabled={busy} className="btn-brand"><Save size={15} /> {busy ? "Saving…" : selected ? "Save changes" : "Create record"}</button>{selected && <button type="button" onClick={reset} className="btn-outline-brand">Cancel</button>}</div>
       </form>
