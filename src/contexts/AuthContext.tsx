@@ -30,6 +30,7 @@ interface AuthContextValue {
   error: string;
   login: (email: string, password: string) => Promise<SessionUser>;
   adminLogin: (email: string, password: string) => Promise<SessionUser>;
+  adminRegister: (name: string, email: string, password: string, registrationCode?: string) => Promise<SessionUser>;
   register: (name: string, email: string, password: string, memberDetails: {
     country: string;
     institutionType: "school" | "other";
@@ -111,6 +112,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return result.user;
   }, []);
 
+  const adminRegister = useCallback(async (name: string, email: string, password: string, registrationCode?: string) => {
+    authRequestId.current += 1;
+    sessionResolved.current = true;
+    setLoading(false);
+    const result = await api<{ user: SessionUser }>("/auth/admin-register", {
+      method: "POST",
+      body: { name, email, password, ...(registrationCode ? { registrationCode } : {}) },
+    });
+    setUser(result.user);
+    setError("");
+    return result.user;
+  }, []);
+
   const register = useCallback(async (name: string, email: string, password: string, memberDetails: {
     country: string;
     institutionType: "school" | "other";
@@ -132,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  const value = useMemo(() => ({ user, loading, error, login, adminLogin, register, logout, refresh }), [user, loading, error, login, adminLogin, register, logout, refresh]);
+  const value = useMemo(() => ({ user, loading, error, login, adminLogin, adminRegister, register, logout, refresh }), [user, loading, error, login, adminLogin, adminRegister, register, logout, refresh]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

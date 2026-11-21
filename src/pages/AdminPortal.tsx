@@ -445,6 +445,8 @@ function SettingsPage() {
   const [communityEnabled, setCommunityEnabled] = useState(true);
   const [adminAccountCreationEnabled, setAdminAccountCreationEnabled] = useState(true);
   const [additionalAdminCreated, setAdditionalAdminCreated] = useState(false);
+  const [registrationOpen, setRegistrationOpen] = useState(true);
+  const [registrationBusy, setRegistrationBusy] = useState(false);
   const [communityLoading, setCommunityLoading] = useState(true);
   const [communityBusy, setCommunityBusy] = useState(false);
   const [communityError, setCommunityError] = useState("");
@@ -455,6 +457,7 @@ function SettingsPage() {
         setText(JSON.stringify(result.settings, null, 2));
         const adminSetting = result.settings.adminAccountCreationEnabled;
         if (typeof adminSetting === 'boolean') setAdminAccountCreationEnabled(adminSetting);
+        if (typeof result.settings.registrationOpen === 'boolean') setRegistrationOpen(result.settings.registrationOpen);
         setAdditionalAdminCreated(result.adminAccountCreationUsed);
       })
       .catch((cause) => setError(cause.message));
@@ -471,6 +474,15 @@ function SettingsPage() {
     } catch (cause) {
       setCommunityError(cause instanceof Error ? cause.message : 'Community button settings could not be saved.');
     } finally { setCommunityBusy(false); }
+  };
+  const saveMemberRegistration = async (event: React.FormEvent) => {
+    event.preventDefault(); setError(''); setNotice(''); setRegistrationBusy(true);
+    try {
+      await api('/admin/settings', { method: 'PUT', body: { registrationOpen } });
+      setNotice(registrationOpen ? 'Member registration is open.' : 'Member registration is closed.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'The member registration setting could not be saved.');
+    } finally { setRegistrationBusy(false); }
   };
   const saveAdminAccountCreation = async (event: React.FormEvent) => {
     event.preventDefault(); setError(''); setNotice('');
@@ -526,14 +538,25 @@ function SettingsPage() {
       )}
     </section>
     <section className="mb-6 max-w-3xl rounded-xl border border-orange-100 bg-white p-5">
+      <h2 className="font-display text-lg font-bold text-stone-900">Member registration</h2>
+      <p className="mt-1 text-sm text-stone-500">Open or close new member sign-ups at <span className="font-medium">/register</span>. Existing members can still sign in while registration is closed.</p>
+      <form onSubmit={saveMemberRegistration} className="mt-4 space-y-4">
+        <label className="flex items-center gap-3 text-sm font-medium text-stone-700">
+          <input type="checkbox" checked={registrationOpen} onChange={(event) => setRegistrationOpen(event.target.checked)} className="h-4 w-4 accent-[#34295d]" />
+          Allow new member registration
+        </label>
+        <button disabled={registrationBusy} className="btn-brand disabled:opacity-60"><Save size={15} /> {registrationBusy ? "Saving…" : "Save member registration"}</button>
+      </form>
+    </section>
+    <section className="mb-6 max-w-3xl rounded-xl border border-orange-100 bg-white p-5">
       <h2 className="font-display text-lg font-bold text-stone-900">Admin access controls</h2>
-      <p className="mt-1 text-sm text-stone-500">The current admin can create one additional admin account. After it is created, no further admin accounts can be added. Public member registration remains independent.</p>
+      <p className="mt-1 text-sm text-stone-500">While admin account creation is enabled, the one additional administrator can register from the admin page or be created here. Anyone who can access the admin page can register that account, so disable this when it is not needed. After it is created, no further admin accounts can be added. Public member registration remains independent.</p>
       {additionalAdminCreated && <p role="status" className="notice-success mt-4">The one additional admin account has been created. Admin account creation is permanently locked.</p>}
       {adminCreateNotice && <p role="status" className="notice-success mt-4">{adminCreateNotice}</p>}
       <form onSubmit={saveAdminAccountCreation} className="mt-4 space-y-4">
         <label className="flex items-center gap-3 text-sm font-medium text-stone-700">
           <input type="checkbox" checked={adminAccountCreationEnabled} disabled={additionalAdminCreated} onChange={(event) => setAdminAccountCreationEnabled(event.target.checked)} className="h-4 w-4 accent-[#34295d] disabled:opacity-50" />
-          Enable admin account creation
+          Enable admin account registration and creation
         </label>
         {!additionalAdminCreated && <button className="btn-brand"><Save size={15} /> Save admin access</button>}
       </form>

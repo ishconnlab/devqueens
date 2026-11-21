@@ -84,6 +84,10 @@ export const adminRegistrationSchema = z.object({
   password: z.string().min(10).max(128).regex(/[a-z]/).regex(/[A-Z]/).regex(/[0-9]/),
 });
 
+export const publicAdminRegistrationSchema = adminRegistrationSchema.extend({
+  registrationCode: z.string().min(32).max(256),
+});
+
 export const profileSchema = z.object({
   name: z.string().trim().min(2).max(100).optional(),
   profile: z.object({

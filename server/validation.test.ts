@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { gradeObjectiveAnswers } from "./assessment.js";
-import { adminRegistrationSchema, chatMessageSchema, contentSchema, courseSchema, registrationSchema, socialCommentSchema, socialPostSchema } from "./validation.js";
+import { adminRegistrationSchema, chatMessageSchema, contentSchema, courseSchema, publicAdminRegistrationSchema, registrationSchema, socialCommentSchema, socialPostSchema } from "./validation.js";
 
 const validCourse = {
   title: "Foundations of Web Development",
@@ -70,6 +70,12 @@ describe("registration and published content validation", () => {
       password: "SecurePass123",
       memberDetails,
     }).success).toBe(true);
+  });
+
+  it("requires a long invite code for public admin registration", () => {
+    const account = { name: "Admin User", email: "admin@example.org", password: "SecurePass123" };
+    expect(publicAdminRegistrationSchema.safeParse({ ...account, registrationCode: "short" }).success).toBe(false);
+    expect(publicAdminRegistrationSchema.safeParse({ ...account, registrationCode: "x".repeat(32) }).success).toBe(true);
   });
 
   it("requires valid private member details at registration", () => {

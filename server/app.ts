@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { Readable } from "node:stream";
 import { Types } from "mongoose";
 import express from "express";
@@ -50,6 +50,27 @@ async function ensureAdminAccountCreationSetting(adminCount: number) {
     if (typeof error === "object" && error !== null && "code" in error && error.code === 11000) return;
     throw error;
   }
+}
+
+function registrationCodeMatches(input: string | undefined) {
+  if (!config.ADMIN_REGISTRATION_CODE) return true;
+  if (!input) return false;
+  const provided = createHash("sha256").update(input).digest();
+  const expected = createHash("sha256").update(config.ADMIN_REGISTRATION_CODE).digest();
+  return timingSafeEqual(provided, expected);
+}
+
+async function adminRegistrationAvailability() {
+  const adminCount = await User.countDocuments({ role: "admin" });
+  await ensureAdminAccountCreationSetting(adminCount);
+  const setting = await PlatformSettings.findOne({ key: adminAccountCreationKey }).lean();
+  const requiresCode = Boolean(config.ADMIN_REGISTRATION_CODE);
+  const slotAvailable = setting?.value === true && setting.additionalAdminCreated !== true;
+  return {
+    adminCount,
+    requiresCode,
+    open: adminCount === 0 || (adminCount < 2 && slotAvailable),
+  };
 }
 
 cloudinary.config({
@@ -160,6 +181,74 @@ router.post("/auth/register", authRateLimit, async (req, res, next) => {
     });
     setAuthCookie(res, user);
     res.status(201).json({ user: { id: user.id, name: user.name, email: user.email, role: user.role, memberId: user.memberId } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/auth/registration-status", async (_req, res, next) => {
+  try {
+    const [memberSetting, availability] = await Promise.all([
+      PlatformSettings.findOne({ key: "registrationOpen" }).lean(),
+      adminRegistrationAvailability(),
+    ]);
+    res.json({
+      memberRegistrationOpen: memberSetting?.value !== false,
+      adminRegistrationOpen: availability.open,
+      adminRegistrationRequiresCode: availability.requiresCode,
+      firstAdministrator: availability.adminCount === 0,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/auth/admin-register", authRateLimit, async (req, res, next) => {
+  try {
+    const data = parseOrRespond(adminRegistrationSchema.extend({ registrationCode: z.string().max(256).optional() }), req.body, res);
+    if (!data) return;
+    const availability = await adminRegistrationAvailability();
+    if (!availability.open) {
+      return sendError(res, 403, "Administrator registration is closed. Sign in with an existing administrator account to create the additional admin.");
+    }
+    if (availability.requiresCode) {
+      if (!data.registrationCode) return sendError(res, 400, "Enter the administrator registration code.");
+      if (!registrationCodeMatches(data.registrationCode)) return sendError(res, 403, "The administrator registration code is incorrect.");
+    }
+    const email = data.email.toLowerCase();
+    if (await User.exists({ email })) return sendError(res, 409, "An account with this email already exists.");
+    let claimedSlot = false;
+    if (availability.adminCount > 0) {
+      const claimed = await PlatformSettings.findOneAndUpdate(
+        { key: adminAccountCreationKey, value: true, additionalAdminCreated: { $ne: true } },
+        { $set: { value: false, additionalAdminCreated: true } },
+        { new: false },
+      );
+      if (!claimed) return sendError(res, 403, "Administrator registration is closed.");
+      claimedSlot = true;
+    }
+    const passwordHash = await bcrypt.hash(data.password, 12);
+    let user;
+    try {
+      user = await User.create({ name: data.name, email, passwordHash, role: "admin" });
+    } catch (error) {
+      if (claimedSlot) {
+        await PlatformSettings.updateOne(
+          { key: adminAccountCreationKey, additionalAdminCreated: true },
+          { $set: { value: true, additionalAdminCreated: false } },
+        );
+      }
+      throw error;
+    }
+    if (availability.adminCount === 0) {
+      await PlatformSettings.updateOne(
+        { key: adminAccountCreationKey },
+        { $set: { value: true, additionalAdminCreated: false } },
+        { upsert: true },
+      );
+    }
+    setAuthCookie(res, user);
+    res.status(201).json({ user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (error) {
     next(error);
   }
@@ -1206,6 +1295,9 @@ router.put("/admin/settings", requireAdmin, async (req, res, next) => {
     }
     if (parsed.data.communityJoinEnabled !== undefined && typeof parsed.data.communityJoinEnabled !== "boolean") {
       return sendError(res, 400, "Community button enabled setting must be a boolean.");
+    }
+    if (parsed.data.registrationOpen !== undefined && typeof parsed.data.registrationOpen !== "boolean") {
+      return sendError(res, 400, "Member registration setting must be a boolean.");
     }
     if (parsed.data.adminAccountCreationEnabled !== undefined && typeof parsed.data.adminAccountCreationEnabled !== "boolean") {
       return sendError(res, 400, "Admin account creation setting must be a boolean.");

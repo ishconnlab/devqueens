@@ -16,6 +16,7 @@ export const configSchema = z.object({
   CERTIFICATE_SIGNER_TITLE: z.string().default("Authorized Signatory, IshConnect"),
   ADMIN_EMAIL: z.preprocess((value) => value === "" ? undefined : value, z.string().email().optional()),
   ADMIN_PASSWORD: optionalString,
+  ADMIN_REGISTRATION_CODE: optionalString,
 });
 
 export const config = configSchema.parse(process.env);

@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, BookOpen, Braces, Code2, LockKeyhole, Sparkles }
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import DevQueensLogo from "@/components/devqueens/DevQueensLogo";
 import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 import { updateSeo } from "@/lib/seo";
 
 const ageRanges = [
@@ -34,6 +35,15 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
     });
   }, [isRegister]);
   const [registrationStep, setRegistrationStep] = useState(0);
+  const [registrationClosed, setRegistrationClosed] = useState(false);
+  useEffect(() => {
+    if (!isRegister) return;
+    let active = true;
+    api<{ memberRegistrationOpen: boolean }>("/auth/registration-status")
+      .then((result) => { if (active) setRegistrationClosed(!result.memberRegistrationOpen); })
+      .catch(() => { if (active) setRegistrationClosed(false); });
+    return () => { active = false; };
+  }, [isRegister]);
   const authSchema = z.object({
     name: z.string().trim().max(100).optional(),
     email: z.string().trim().email("Enter a valid email address.").max(254),
@@ -146,6 +156,7 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
 
           <form onSubmit={submit} className="flex flex-col gap-4">
             {serviceError && <p role="alert" className="notice-error">{serviceError}</p>}
+            {isRegister && registrationClosed && <p role="alert" className="notice-error">New member registration is currently closed. Please check back later or contact the DevQueens team.</p>}
             {isRegister && <div className="mb-1">
               <div className="mb-2 flex items-center justify-between text-xs font-semibold text-[#716a78]">
                 <span>Step {registrationStep + 1} of 3</span>
@@ -223,10 +234,10 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
             {isRegister && <div className="flex gap-3">
               {registrationStep > 0 && <button type="button" onClick={() => setRegistrationStep((step) => step - 1)} className="min-h-12 flex-1 rounded-xl border border-[#e8dfd5] bg-white px-4 text-sm font-semibold text-[#51447e] transition hover:border-[#b9acd9]">Back</button>}
               {registrationStep < 2
-                ? <button type="button" onClick={goToNextStep} className="group inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#34295d] px-5 text-sm font-semibold text-white transition hover:bg-[#493b7d]">
+                ? <button type="button" disabled={registrationClosed} onClick={goToNextStep} className="group inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#34295d] px-5 text-sm font-semibold text-white transition hover:bg-[#493b7d] disabled:cursor-not-allowed disabled:opacity-60">
                   Continue <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
                 </button>
-                : <button disabled={isSubmitting} className="group inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#34295d] px-5 text-sm font-semibold text-white transition hover:bg-[#493b7d] disabled:cursor-not-allowed disabled:opacity-60">
+                : <button disabled={isSubmitting || registrationClosed} className="group inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#34295d] px-5 text-sm font-semibold text-white transition hover:bg-[#493b7d] disabled:cursor-not-allowed disabled:opacity-60">
                   {isSubmitting ? "Please wait…" : "Create my account"}
                   {!isSubmitting && <ArrowRight size={15} />}
                 </button>}
