@@ -1,17 +1,5 @@
 import { useEffect, useState } from "react";
-import type { MembershipCardMember, MembershipCardSettings } from "@/lib/membershipCard";
-import { formatMembershipDate } from "@/lib/membershipCard";
-
-export const membershipCardCircuitPaths = [
-  [[930, 0], [930, 26], [978, 26], [1002, 2]],
-  [[1030, 0], [1030, 16], [1080, 16], [1100, 36], [1150, 36], [1186, 0]],
-  [[1200, 80], [1168, 80], [1148, 60], [1115, 60], [1096, 42]],
-  [[1200, 138], [1176, 138], [1150, 112], [1150, 76]],
-  [[0, 610], [34, 610], [60, 636], [120, 636], [142, 658]],
-  [[0, 690], [44, 690], [68, 714], [132, 714], [155, 737]],
-  [[78, 757], [78, 729], [98, 708], [98, 670], [126, 642]],
-  [[0, 558], [18, 558], [36, 576], [56, 576]],
-] as const;
+import { formatMembershipDate, membershipCardCircuitPaths, type MembershipCardMember, type MembershipCardSettings } from "@/lib/membershipCard";
 
 function BrandLogo({ settings }: { settings: MembershipCardSettings }) {
   const [failed, setFailed] = useState(false);

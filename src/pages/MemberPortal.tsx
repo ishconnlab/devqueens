@@ -5,13 +5,13 @@ import QRCode from "qrcode";
 import { api, apiUrl } from "@/lib/api";
 import { useAuth, type SessionUser } from "@/contexts/AuthContext";
 import { EmptyState, PageHeading, PlatformShell } from "@/components/platform/PlatformShell";
-import MembershipCardFace, { membershipCardCircuitPaths } from "@/components/devqueens/MembershipCardFace";
+import MembershipCardFace from "@/components/devqueens/MembershipCardFace";
 import { CourseCatalog, CourseWorkspace, LearningHome } from "@/pages/CoursePages";
 import { AnalyticsPage, CommunityPage } from "@/pages/SocialPages";
 import { MemberInboxPage } from "@/pages/InboxPages";
 import PageLoader from "@/components/devqueens/PageLoader";
 import { updateSeo } from "@/lib/seo";
-import { formatMembershipDate, type MembershipCardSettings } from "@/lib/membershipCard";
+import { formatMembershipDate, membershipCardCircuitPaths, type MembershipCardSettings } from "@/lib/membershipCard";
 
 type CertificateRecord = { _id: string; certificateId: string; issuedAt: string; courseId: { title: string; slug: string } };
 
