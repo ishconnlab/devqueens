@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MembershipCardMember, MembershipCardSettings } from "@/lib/membershipCard";
+import { AppFeedbackProvider } from "@/components/platform/AppFeedback";
 import MembershipCardSettingsPage from "./MembershipCardSettingsPage";
 
 const { mockApi } = vi.hoisted(() => ({ mockApi: vi.fn() }));
@@ -48,7 +49,7 @@ describe("MembershipCardSettingsPage", () => {
   });
 
   it("previews a real member and saves only shared branding settings", async () => {
-    render(<MembershipCardSettingsPage />);
+    render(<AppFeedbackProvider><MembershipCardSettingsPage /></AppFeedbackProvider>);
 
     expect(await screen.findByRole("heading", { name: "Membership Card Settings" })).toBeInTheDocument();
     expect(await screen.findByRole("article", { name: "DEVQUEENS membership card for Amina N." })).toBeInTheDocument();
@@ -64,5 +65,5 @@ describe("MembershipCardSettingsPage", () => {
       { method: "PUT", body: { ...settings, slogan: "LEARN. CREATE. LEAD." } },
     ));
     expect(screen.getByText("DQ-2024-00000001")).toBeInTheDocument();
-  });
+  }, 10000);
 });

@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { ADMIN_NAVIGATION } from "@/lib/adminNavigation";
+import { AppFeedbackProvider } from "@/components/platform/AppFeedback";
 
 const expectedHeadings: Record<(typeof ADMIN_NAVIGATION)[number]["content"], string> = {
   overview: "Good morning, team",
@@ -60,6 +61,7 @@ vi.mock("@/lib/api", () => ({
     if (path === "/admin/reports") return { reports: { monthlyMembers: [], courseEnrollments: [], assessments: [] } };
     if (path === "/admin/inbox") return { threads: [] };
     if (path === "/admin/inbox/broadcasts") return { messages: [] };
+    if (path === "/messages/unread-count") return { count: 0 };
     if (path === "/admin/settings") return { settings: {}, adminAccountCreationUsed: false };
     if (path === "/admin/membership-card-settings") return { settings: cardSettings };
     if (path === "/community-link") return { url: "https://chat.whatsapp.com/example", enabled: true };
@@ -75,9 +77,11 @@ describe("AdminPortal", () => {
     it(`opens ${page.label} at ${page.href}`, async () => {
       render(
         <MemoryRouter initialEntries={[page.href]}>
-          <Routes>
-            <Route path="/admin/*" element={<AdminPortal />} />
-          </Routes>
+          <AppFeedbackProvider>
+            <Routes>
+              <Route path="/admin/*" element={<AdminPortal />} />
+            </Routes>
+          </AppFeedbackProvider>
         </MemoryRouter>,
       );
 
@@ -97,9 +101,11 @@ describe("AdminPortal", () => {
   ])("shows labeled placeholder fields instead of a JSON editor at %s", async (path, label, placeholder) => {
     render(
       <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path="/admin/*" element={<AdminPortal />} />
-        </Routes>
+        <AppFeedbackProvider>
+          <Routes>
+            <Route path="/admin/*" element={<AdminPortal />} />
+          </Routes>
+        </AppFeedbackProvider>
       </MemoryRouter>,
     );
 
@@ -111,9 +117,11 @@ describe("AdminPortal", () => {
   it("shows a shortcut for every admin page on the overview", async () => {
     render(
       <MemoryRouter initialEntries={["/admin"]}>
-        <Routes>
-          <Route path="/admin/*" element={<AdminPortal />} />
-        </Routes>
+        <AppFeedbackProvider>
+          <Routes>
+            <Route path="/admin/*" element={<AdminPortal />} />
+          </Routes>
+        </AppFeedbackProvider>
       </MemoryRouter>,
     );
 

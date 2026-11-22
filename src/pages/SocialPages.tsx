@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { EmptyState, PageHeading } from "@/components/platform/PlatformShell";
+import { useAppFeedback } from "@/components/platform/AppFeedbackContext";
 
 type SocialPerson = {
   name: string;
@@ -31,6 +32,7 @@ function Avatar({ person, className = "h-10 w-10" }: { person: SocialPerson; cla
 
 function SocialPostCard({ post, onRefresh }: { post: SocialPost; onRefresh: () => void }) {
   const { user } = useAuth();
+  const { confirm } = useAppFeedback();
   const [comment, setComment] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -50,7 +52,7 @@ function SocialPostCard({ post, onRefresh }: { post: SocialPost; onRefresh: () =
     finally { setPending(false); }
   };
   const deletePost = async () => {
-    if (!window.confirm("Delete this post? This cannot be undone.")) return;
+    if (!await confirm({ title: "Delete this post?", message: "This action cannot be undone.", confirmLabel: "Delete post", destructive: true })) return;
     setPending(true); setError("");
     try { await api(`/social/posts/${post._id}`, { method: "DELETE" }); onRefresh(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Could not delete the post."); }
@@ -133,11 +135,11 @@ export function CommunityPage() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not update your follows."); }
   };
 
-  return <>
+  return <div className="lg:flex lg:h-full lg:min-h-0 lg:flex-col">
     <PageHeading eyebrow="DevQueens community" title="Learn, build & belong" description="Share your progress, celebrate each other, and stay connected with women learning technology." />
-    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-      <section className="space-y-5">
-        <form onSubmit={publish} className="rounded-2xl border border-[#e8dfd5] bg-white p-5 shadow-sm">
+    <div className="grid items-start gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_340px] lg:grid-rows-1 lg:items-stretch">
+      <section className="space-y-5 lg:flex lg:min-h-0 lg:flex-col">
+        <form onSubmit={publish} className="rounded-2xl border border-[#e8dfd5] bg-white p-5 shadow-sm lg:shrink-0">
           <div className="flex items-start gap-3">
             {user && <Avatar person={{ name: user.name, memberId: user.memberId ?? "", profile: user.profile }} />}
             <label htmlFor="community-post" className="sr-only">Share an update</label>
@@ -158,11 +160,13 @@ export function CommunityPage() {
           </div>
           {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
         </form>
-        {loading ? <p className="py-8 text-center text-sm text-[#77717d]">Loading community…</p>
-          : posts.length ? posts.map((post) => <SocialPostCard key={post._id} post={post} onRefresh={() => { void refresh().catch((cause) => setError(cause.message)); }} />)
-            : <EmptyState title="Your community feed is ready" message="Follow a member to see their updates here, or share what you are learning to start a conversation." />}
+        <div className="space-y-5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-2">
+          {loading ? <p className="py-8 text-center text-sm text-[#77717d]">Loading community…</p>
+            : posts.length ? posts.map((post) => <SocialPostCard key={post._id} post={post} onRefresh={() => { void refresh().catch((cause) => setError(cause.message)); }} />)
+              : <EmptyState title="Your community feed is ready" message="Follow a member to see their updates here, or share what you are learning to start a conversation." />}
+        </div>
       </section>
-      <aside className="rounded-2xl border border-[#e8dfd5] bg-white p-5">
+      <aside className="rounded-2xl border border-[#e8dfd5] bg-white p-5 lg:max-h-full lg:overflow-y-auto">
         <div className="mb-4 flex items-center justify-between">
           <div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#e5684f]">Discover</p><h2 className="mt-1 font-display text-xl font-bold text-[#34295d]">Members</h2></div>
           <Users size={20} className="text-[#51447e]" />
@@ -184,7 +188,7 @@ export function CommunityPage() {
         <Link to="/portal/profile" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#8a8290] hover:text-[#51447e]">Manage public profile <ExternalLink size={12} /></Link>
       </aside>
     </div>
-  </>;
+  </div>;
 }
 
 type Analytics = { followers: number; following: number; newFollowersLast30Days: number; posts: number; likesReceived: number; commentsReceived: number };

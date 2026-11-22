@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { EmptyState, PageHeading, PlatformShell } from "@/components/platform/PlatformShell";
 import { AdminInboxPage } from "@/pages/InboxPages";
 import PageLoader from "@/components/devqueens/PageLoader";
+import { useAppFeedback } from "@/components/platform/AppFeedbackContext";
 import { updateSeo } from "@/lib/seo";
 import AdminLoginPage from "@/pages/AdminAuthPage";
 import { ADMIN_NAVIGATION } from "@/lib/adminNavigation";
@@ -109,6 +110,7 @@ function MembersManager() {
 }
 
 function EnrollmentsManager() {
+  const { confirm } = useAppFeedback();
   const [members, setMembers] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [enrollments, setEnrollments] = useState<any[]>([]);
@@ -144,7 +146,12 @@ function EnrollmentsManager() {
     } finally { setBusy(false); }
   };
   const removeEnrollment = async (enrollment: any) => {
-    if (!window.confirm(`Remove ${enrollment.userId?.name} from ${enrollment.courseId?.title}?`)) return;
+    if (!(await confirm({
+      title: "Remove this enrollment?",
+      message: `Remove ${enrollment.userId?.name} from ${enrollment.courseId?.title}?`,
+      confirmLabel: "Remove enrollment",
+      destructive: true,
+    }))) return;
     try {
       await api(`/admin/enrollments/${enrollment._id}`, { method: "DELETE" });
       setNotice("Enrollment removed.");
@@ -168,6 +175,7 @@ function EnrollmentsManager() {
 }
 
 function CourseManager() {
+  const { confirm } = useAppFeedback();
   const [courses, setCourses] = useState<any[]>([]);
   const [form, setForm] = useState<CourseForm>(emptyCourse);
   const [selectedId, setSelectedId] = useState("");
@@ -237,8 +245,18 @@ function CourseManager() {
     setSelectedId(course._id); setMode("builder"); setNotice("Editing course. Correct answers are not returned by the API; recreate them before updating an assessment.");
   };
   const deleteCourse = async (course: any) => {
-    if (!window.confirm(`Delete “${course.title}”? Existing learning records may no longer be accessible.`)) return;
-    try { await api(`/admin/courses/${course._id}`, { method: "DELETE" }); await load(); }
+    if (!(await confirm({
+      title: "Permanently delete this course?",
+      message: `Delete “${course.title}” and permanently remove all enrollments, assessment attempts, and certificates associated with it? This cannot be undone.`,
+      confirmLabel: "Delete course and records",
+      destructive: true,
+    }))) return;
+    setError(""); setNotice("");
+    try {
+      await api(`/admin/courses/${course._id}`, { method: "DELETE" });
+      setNotice(`“${course.title}” and its learner records were permanently deleted.`);
+      await load();
+    }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Course could not be deleted."); }
   };
 
@@ -352,11 +370,17 @@ function AssessmentsManager() {
 }
 
 function CertificatesManager() {
+  const { confirm } = useAppFeedback();
   const [certificates, setCertificates] = useState<any[]>([]); const [error, setError] = useState("");
   const load = () => api<{ certificates: any[] }>("/admin/certificates").then((result) => setCertificates(result.certificates)).catch((cause) => setError(cause.message));
   useEffect(() => { void load(); }, []);
   const revoke = async (certificate: any) => {
-    if (!window.confirm(`Revoke certificate ${certificate.certificateId}? Public verification will show it as invalid.`)) return;
+    if (!(await confirm({
+      title: "Revoke this certificate?",
+      message: `Revoke certificate ${certificate.certificateId}? Public verification will show it as invalid.`,
+      confirmLabel: "Revoke certificate",
+      destructive: true,
+    }))) return;
     try { await api(`/admin/certificates/${certificate._id}/revoke`, { method: "PATCH" }); await load(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Certificate could not be revoked."); }
   };
@@ -485,6 +509,7 @@ function buildContentData(kind: string, values: Record<string, string>, original
 }
 
 function ContentManager({ kind }: { kind: string }) {
+  const { confirm } = useAppFeedback();
   const [items, setItems] = useState<any[]>([]); const [selected, setSelected] = useState<any | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
   const [published, setPublished] = useState(true); const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [busy, setBusy] = useState(false);
@@ -516,7 +541,12 @@ function ContentManager({ kind }: { kind: string }) {
     finally { setBusy(false); }
   };
   const remove = async (item: any) => {
-    if (!window.confirm(`Delete “${item.data.title ?? item.data.name ?? title}”?`)) return;
+    if (!(await confirm({
+      title: "Delete this content record?",
+      message: `Delete “${item.data.title ?? item.data.name ?? title}”? This cannot be undone.`,
+      confirmLabel: "Delete record",
+      destructive: true,
+    }))) return;
     try { await api(`/admin/content/${kind}/${item._id}`, { method: "DELETE" }); await load(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Content could not be deleted."); }
   };

@@ -1,16 +1,21 @@
 import type { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowUpRight, LogOut, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DevQueensLogo from "@/components/devqueens/DevQueensLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { ADMIN_NAVIGATION } from "@/lib/adminNavigation";
+import { api } from "@/lib/api";
 
 export function PlatformShell({ children, admin = false }: { children: ReactNode; admin?: boolean }) {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const communityPage = !admin && pathname === "/portal/community";
+  const userId = user?.id;
+  const userRole = user?.role;
   const links = admin
     ? ADMIN_NAVIGATION.map(({ label, href }) => ({ label, href }))
     : [
@@ -23,6 +28,25 @@ export function PlatformShell({ children, admin = false }: { children: ReactNode
       { label: "Membership card", href: "/portal/card" },
       { label: "My profile", href: "/portal/profile" },
     ];
+
+  useEffect(() => {
+    let active = true;
+    const refreshUnreadCount = async () => {
+      if (!userId || (userRole !== "admin" && userRole !== "member")) return;
+      try {
+        const result = await api<{ count: number }>("/messages/unread-count");
+        if (active) setUnreadCount(result.count);
+      } catch (cause) {
+        if (active) console.error("Unread inbox count could not be loaded.", cause);
+      }
+    };
+    void refreshUnreadCount();
+    const timer = window.setInterval(() => void refreshUnreadCount(), 10000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [pathname, userId, userRole]);
 
   const signOut = () => {
     setMenuOpen(false);
@@ -57,13 +81,15 @@ export function PlatformShell({ children, admin = false }: { children: ReactNode
         </div>
       </header>
       <div className="mx-auto flex max-w-[1440px]">
-        <aside className={`${menuOpen ? "block" : "hidden"} absolute z-20 min-h-[calc(100vh-68px)] w-64 border-r border-[#e8dfd5] bg-white px-4 py-6 md:relative md:block md:shrink-0`}>
+        <aside className={`${menuOpen ? "block" : "hidden"} absolute z-20 min-h-[calc(100vh-68px)] w-64 border-r border-[#e8dfd5] bg-white px-4 py-6 md:relative md:block md:shrink-0 ${communityPage ? "md:sticky md:top-[68px] md:h-[calc(100dvh-68px)] md:overflow-y-auto" : ""}`}>
           <p className="mb-3 px-3 text-[11px] font-bold uppercase tracking-[.14em] text-[#aaa2ad]">{admin ? "Workspace" : "Your space"}</p>
           <nav className="space-y-1">
             {links.map(({ label, href }) => (
-              <Link key={href} to={href} onClick={() => setMenuOpen(false)} aria-current={pathname === href ? "page" : undefined} className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition ${pathname === href ? "bg-[#34295d] text-white hover:bg-[#493b7d]" : "text-[#625e6b] hover:bg-[#eee8f5] hover:text-[#34295d]"}`}>
-                {label}
-                <ArrowUpRight size={14} className={pathname === href ? "text-white/60" : "text-[#b9acd9]"} />
+              <Link key={href} to={href} onClick={() => setMenuOpen(false)} aria-current={pathname === href ? "page" : undefined} aria-label={label === "Inbox" && unreadCount ? `Inbox, ${unreadCount} unread messages` : undefined} className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition ${pathname === href ? "bg-[#34295d] text-white hover:bg-[#493b7d]" : "text-[#625e6b] hover:bg-[#eee8f5] hover:text-[#34295d]"}`}>
+                <span>{label}</span>
+                {label === "Inbox" && unreadCount > 0
+                  ? <span aria-hidden="true" className={`ml-2 grid min-h-5 min-w-5 place-items-center rounded-full px-1 text-[10px] font-bold ${pathname === href ? "bg-white text-[#34295d]" : "bg-[#e5684f] text-white"}`}>{unreadCount > 99 ? "99+" : unreadCount}</span>
+                  : <ArrowUpRight size={14} className={pathname === href ? "text-white/60" : "text-[#b9acd9]"} />}
               </Link>
             ))}
           </nav>
@@ -75,7 +101,7 @@ export function PlatformShell({ children, admin = false }: { children: ReactNode
             <LogOut size={15} /> Sign out
           </button>
         </aside>
-        <main className="min-w-0 flex-1 px-5 py-8 md:px-9 md:py-10">{children}</main>
+        <main className={`min-w-0 flex-1 px-5 md:px-9 ${communityPage ? "py-5 lg:h-[calc(100dvh-68px)] lg:overflow-hidden lg:py-5" : "py-8 md:py-10"}`}>{children}</main>
       </div>
     </div>
   );

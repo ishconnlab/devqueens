@@ -5,6 +5,7 @@ import MembershipCardFace from "@/components/devqueens/MembershipCardFace";
 import { EmptyState, PageHeading } from "@/components/platform/PlatformShell";
 import { api } from "@/lib/api";
 import { MEMBERSHIP_CARD_COLORS, type MembershipCardMember, type MembershipCardSettings } from "@/lib/membershipCard";
+import { useAppFeedback } from "@/components/platform/AppFeedbackContext";
 
 interface PreviewMember extends MembershipCardMember {
   _id: string;
@@ -36,6 +37,7 @@ function ColorField({
 }
 
 export default function MembershipCardSettingsPage() {
+  const { confirm } = useAppFeedback();
   const [settings, setSettings] = useState<MembershipCardSettings | null>(null);
   const [members, setMembers] = useState<PreviewMember[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState("");
@@ -112,7 +114,12 @@ export default function MembershipCardSettingsPage() {
   };
 
   const reset = async () => {
-    if (!window.confirm("Reset all membership card branding to the official DevQueens defaults?")) return;
+    if (!(await confirm({
+      title: "Reset membership card settings?",
+      message: "All current card branding will be replaced with the official DevQueens defaults.",
+      confirmLabel: "Reset to defaults",
+      destructive: true,
+    }))) return;
     setBusy(true);
     setError("");
     setNotice("");

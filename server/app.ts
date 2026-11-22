@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { Readable } from "node:stream";
-import { Types } from "mongoose";
+import mongoose, { Types, type ClientSession } from "mongoose";
 import express from "express";
 import bcrypt from "bcryptjs";
 import cookieParser from "cookie-parser";
@@ -16,6 +16,7 @@ import { z } from "zod";
 import { gradeObjectiveAnswers } from "./assessment.js";
 import { config } from "./config.js";
 import { clearAuthCookie, requireAdmin, requireAuth, setAuthCookie, type AuthenticatedRequest } from "./auth.js";
+import { unreadMessageFilter } from "./inboxUnread.js";
 import { defaultMembershipCardSettings, getMembershipCardSettings, membershipCardSettingsKey } from "./membershipCardSettings.js";
 import { profileUpdateFields } from "./profileUpdates.js";
 import { AssessmentAttempt, Certificate, ChatMessage, ChatThread, ContentEntry, Course, Enrollment, Follow, PlatformSettings, SocialPost, User } from "./models.js";
@@ -485,6 +486,20 @@ router.get("/certificates/:certificateId/pdf", requireAuth, async (req: Authenti
 });
 
 router.use(requireAuth);
+
+router.get("/messages/unread-count", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const role = req.user!.role;
+    if (role !== "member" && role !== "admin") return sendError(res, 403, "Inbox access is required.");
+    const thread = role === "member"
+      ? await ChatThread.findOne({ memberId: req.user!.id }).select("_id").lean()
+      : null;
+    const count = await ChatMessage.countDocuments(unreadMessageFilter(role, req.user!.id, thread?._id));
+    res.json({ count });
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.get("/messages/inbox", async (req: AuthenticatedRequest, res, next) => {
   try {
@@ -1124,21 +1139,27 @@ router.put("/admin/courses/:id", requireAdmin, async (req, res, next) => {
 });
 
 router.delete("/admin/courses/:id", requireAdmin, async (req, res, next) => {
+  let session: ClientSession | undefined;
   try {
-    const course = await Course.findById(req.params.id);
-    if (!course) return sendError(res, 404, "Course not found.");
-    const [enrollments, attempts, certificates] = await Promise.all([
-      Enrollment.exists({ courseId: course._id }),
-      AssessmentAttempt.exists({ courseId: course._id }),
-      Certificate.exists({ courseId: course._id }),
-    ]);
-    if (enrollments || attempts || certificates) {
-      return sendError(res, 409, "This course has learner records and cannot be deleted. Change its status to draft instead.");
-    }
-    await course.deleteOne();
+    if (!Types.ObjectId.isValid(String(req.params.id))) return sendError(res, 404, "Course not found.");
+    session = await mongoose.startSession();
+    let found = false;
+    await session.withTransaction(async () => {
+      found = false;
+      const course = await Course.findById(req.params.id).session(session);
+      if (!course) return;
+      found = true;
+      await Enrollment.deleteMany({ courseId: course._id }).session(session);
+      await AssessmentAttempt.deleteMany({ courseId: course._id }).session(session);
+      await Certificate.deleteMany({ courseId: course._id }).session(session);
+      await course.deleteOne({ session });
+    });
+    if (!found) return sendError(res, 404, "Course not found.");
     res.status(204).end();
   } catch (error) {
     next(error);
+  } finally {
+    await session?.endSession();
   }
 });
 

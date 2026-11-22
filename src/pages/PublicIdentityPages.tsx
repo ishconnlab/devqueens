@@ -6,10 +6,12 @@ import DevQueensLogo from "@/components/devqueens/DevQueensLogo";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateSeo } from "@/lib/seo";
+import { useAppFeedback } from "@/components/platform/AppFeedbackContext";
 
 export function PublicMemberPage() {
   const { memberId = "" } = useParams();
   const { user } = useAuth();
+  const { notify } = useAppFeedback();
   const [profile, setProfile] = useState<any>(null);
   const [certificates, setCertificates] = useState<any[]>([]);
   const [following, setFollowing] = useState(false);
@@ -44,7 +46,7 @@ export function PublicMemberPage() {
     const url = window.location.href;
     try {
       if (navigator.share) await navigator.share({ title: `${profile.name} on DevQueens`, url });
-      else { await navigator.clipboard.writeText(url); window.alert("Profile link copied."); }
+      else { await navigator.clipboard.writeText(url); notify("Profile link copied."); }
     } catch (cause) {
       if (cause instanceof Error && cause.name !== "AbortError") setError("Could not share this profile.");
     }

@@ -28,6 +28,7 @@ describe("PlatformShell sign out", () => {
       if (path === "/auth/logout") {
         return new Promise<void>((resolve) => { resolveLogout = resolve; });
       }
+      if (path === "/messages/unread-count") return Promise.resolve({ count: 0 });
       return Promise.reject(new Error(`Unexpected API request: ${path}`));
     });
   });
@@ -50,5 +51,27 @@ describe("PlatformShell sign out", () => {
     expect(await screen.findByText("Home page")).toBeInTheDocument();
     expect(mockApi).toHaveBeenCalledWith("/auth/logout", { method: "POST" });
     resolveLogout?.();
+  });
+
+  it("shows a live unread count beside the inbox link", async () => {
+    mockApi.mockImplementation((path: string) => {
+      if (path === "/auth/me") {
+        return Promise.resolve({
+          user: { id: "member-1", name: "Amina N.", email: "amina@example.org", role: "member" },
+        });
+      }
+      if (path === "/messages/unread-count") return Promise.resolve({ count: 4 });
+      return Promise.reject(new Error(`Unexpected API request: ${path}`));
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/portal"]}>
+        <AuthProvider>
+          <PlatformShell><p>Private portal</p></PlatformShell>
+        </AuthProvider>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole("link", { name: "Inbox, 4 unread messages" })).toBeInTheDocument();
   });
 });
