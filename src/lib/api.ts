@@ -9,7 +9,7 @@ export function apiUrl(path: string) {
 type RequestOptions = Omit<RequestInit, "body"> & { body?: unknown };
 
 export class ApiError extends Error {
-  constructor(message: string, public readonly status: number) {
+  constructor(message: string, public readonly status: number, public readonly details?: unknown) {
     super(message);
     this.name = "ApiError";
   }
@@ -32,7 +32,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   });
   if (!response.ok) {
     const result = await response.json().catch(() => null);
-    throw new ApiError(result?.error ?? `Request failed (${response.status}).`, response.status);
+    throw new ApiError(result?.error ?? `Request failed (${response.status}).`, response.status, result?.details);
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;

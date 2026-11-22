@@ -104,6 +104,7 @@ export function CourseWorkspace() {
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [result, setResult] = useState<{ status: string; score: number; totalMarks: number; certificate?: { certificateId: string } } | null>(null);
+  const [certificateId, setCertificateId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [exerciseResponses, setExerciseResponses] = useState<Record<string, string>>({});
@@ -121,6 +122,7 @@ export function CourseWorkspace() {
         const results = await api<{ attempts: { status: string; score: number; totalMarks: number }[]; certificate: { certificateId: string } | null }>(`/courses/${courseResult.course._id}/assessment-results`);
         const latest = results.attempts[0];
         if (latest) setResult({ ...latest, certificate: results.certificate ?? undefined });
+        setCertificateId(results.certificate?.certificateId ?? "");
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Course details could not be loaded.");
@@ -137,6 +139,7 @@ export function CourseWorkspace() {
         body: { exerciseResponse: exerciseResponses[lesson._id] ?? "" },
       });
       setEnrollment(response.enrollment);
+      await load();
       return true;
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Lesson progress could not be saved."); return false; }
     finally { setBusy(false); }
@@ -179,6 +182,7 @@ export function CourseWorkspace() {
         { method: "POST", body: { answers: Object.entries(answers).map(([questionId, answer]) => ({ questionId, answer })) } },
       );
       setResult({ ...response.attempt, certificate: response.certificate });
+      setCertificateId(response.certificate?.certificateId ?? "");
       setAssessment(null);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Assessment could not be submitted."); }
     finally { setBusy(false); }
@@ -189,6 +193,7 @@ export function CourseWorkspace() {
   const allLessons = course.modules.flatMap((module) => module.lessons);
   const completionPercent = enrollment?.progress ?? 0;
   const requiredComplete = completionPercent >= course.completionRequirementPercent;
+  const hasAssessment = (course.assessment?.questions?.length ?? 0) > 0;
 
   return (
     <div>
@@ -217,11 +222,12 @@ export function CourseWorkspace() {
           </div>)}
         </section>
         <aside className="h-fit rounded-xl border border-orange-100 bg-white p-5 md:p-6">
-          <p className="section-eyebrow">Final assessment</p><h2 className="mt-1 font-display text-lg font-bold">Show what you know</h2>
-          <p className="mt-2 text-sm leading-6 text-stone-500">Pass with {course.assessment.passingScore}% or higher. You have {course.assessment.attemptLimit} attempts, with {course.assessment.timeLimitMinutes} minutes per attempt.</p>
+          <p className="section-eyebrow">{hasAssessment ? "Final assessment" : "Course completion"}</p><h2 className="mt-1 font-display text-lg font-bold">{hasAssessment ? "Show what you know" : "Earn your certificate"}</h2>
+          {hasAssessment ? <p className="mt-2 text-sm leading-6 text-stone-500">Pass with {course.assessment.passingScore}% or higher. You have {course.assessment.attemptLimit} attempts, with {course.assessment.timeLimitMinutes} minutes per attempt.</p> : <p className="mt-2 text-sm leading-6 text-stone-500">This course is completed by finishing the required lessons. No final assessment is required.</p>}
           {!enrollment && <p className="mt-4 flex items-center gap-2 rounded-lg bg-stone-50 p-3 text-xs text-stone-500"><LockKeyhole size={15} /> Enroll to begin learning.</p>}
-          {enrollment && !requiredComplete && <p className="mt-4 flex items-center gap-2 rounded-lg bg-stone-50 p-3 text-xs text-stone-500"><LockKeyhole size={15} /> Complete the required lessons to unlock the assessment.</p>}
-          {enrollment && requiredComplete && !assessment && (!result || result.status === "failed") && <button disabled={busy} onClick={() => void startAssessment()} className="btn-brand mt-5 w-full">{busy ? "Preparing…" : result ? "Try another attempt" : "Start assessment"} <ArrowRight size={15} /></button>}
+          {enrollment && !requiredComplete && <p className="mt-4 flex items-center gap-2 rounded-lg bg-stone-50 p-3 text-xs text-stone-500"><LockKeyhole size={15} /> Complete the required lessons to {hasAssessment ? "unlock the assessment" : "earn your certificate"}.</p>}
+          {enrollment && requiredComplete && !hasAssessment && <div className="mt-4 rounded-lg bg-emerald-50 p-4 text-emerald-900"><p className="font-semibold">Course completed</p>{certificateId ? <a className="mt-3 inline-block text-sm font-semibold underline" href="/portal/certificates">View your certificate</a> : <p className="mt-1 text-sm">Preparing your certificate…</p>}</div>}
+          {enrollment && hasAssessment && requiredComplete && !assessment && (!result || result.status === "failed") && <button disabled={busy} onClick={() => void startAssessment()} className="btn-brand mt-5 w-full">{busy ? "Preparing…" : result ? "Try another attempt" : "Start assessment"} <ArrowRight size={15} /></button>}
           {result && <div className={`mt-4 rounded-lg p-4 ${result.status === "passed" ? "bg-emerald-50 text-emerald-900" : result.status === "pending-review" ? "bg-amber-50 text-amber-900" : "bg-red-50 text-red-900"}`}>
             <p className="font-semibold">{result.status === "passed" ? "Assessment passed" : result.status === "pending-review" ? "Submitted for review" : "Not passed yet"}</p>
             <p className="mt-1 text-sm">Score: {Math.round(result.score / result.totalMarks * 100)}%</p>

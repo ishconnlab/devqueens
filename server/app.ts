@@ -856,7 +856,12 @@ router.post("/courses/:courseId/lessons/:lessonId/complete", async (req: Authent
     }
     const ids = courseLessonIds(course);
     enrollment.progress = ids.length ? Math.round((enrollment.completedLessonIds.length / ids.length) * 100) : 0;
-    if (enrollment.progress >= course.completionRequirementPercent) enrollment.completedAt = new Date();
+    if (enrollment.progress >= course.completionRequirementPercent) {
+      enrollment.completedAt = new Date();
+      if (!(course.assessment?.questions?.length ?? 0)) {
+        await createCertificate(req.user!.id, course.id);
+      }
+    }
     await enrollment.save();
     res.json({ enrollment });
   } catch (error) {
@@ -869,9 +874,8 @@ router.post("/courses/:courseId/assessment/start", async (req: AuthenticatedRequ
     const course = await Course.findOne({ _id: req.params.courseId, status: "published" });
     if (!course) return sendError(res, 404, "Course not found.");
     if (!(await checkCourseCompletion(req.user!.id, course))) return sendError(res, 403, "Complete the required lessons before starting the final assessment.");
+    if (!(course.assessment?.questions?.length ?? 0)) return sendError(res, 400, "This course does not require a final assessment.");
     const now = new Date();
-    if (course.assessment.availableFrom && now < course.assessment.availableFrom) return sendError(res, 403, "This assessment is not available yet.");
-    if (course.assessment.availableUntil && now > course.assessment.availableUntil) return sendError(res, 403, "The assessment availability period has ended.");
     const active = await AssessmentAttempt.findOne({ userId: req.user!.id, courseId: course._id, status: "in-progress" });
     if (active) {
       const elapsedMinutes = (now.getTime() - new Date(active.startedAt).getTime()) / 60000;
@@ -924,14 +928,18 @@ router.post("/courses/:courseId/assessment/:attemptId/submit", async (req: Authe
 
 router.get("/courses/:courseId/assessment-results", async (req: AuthenticatedRequest, res, next) => {
   try {
+    const course = await Course.findById(req.params.courseId);
     const attempts = await AssessmentAttempt.find({
       userId: req.user!.id,
       courseId: req.params.courseId,
       status: { $ne: "in-progress" },
     }).sort({ submittedAt: -1 }).select("score totalMarks status startedAt submittedAt");
-    const certificate = attempts.some((attempt) => attempt.status === "passed")
-      ? await Certificate.findOne({ userId: req.user!.id, courseId: req.params.courseId, revokedAt: { $exists: false } }).select("certificateId")
-      : null;
+    let certificate = null;
+    if (attempts.some((attempt) => attempt.status === "passed")) {
+      certificate = await Certificate.findOne({ userId: req.user!.id, courseId: req.params.courseId, revokedAt: { $exists: false } }).select("certificateId");
+    } else if (course && !(course.assessment?.questions?.length ?? 0) && await checkCourseCompletion(req.user!.id, course)) {
+      certificate = await createCertificate(req.user!.id, course.id);
+    }
     res.json({ attempts, certificate });
   } catch (error) {
     next(error);

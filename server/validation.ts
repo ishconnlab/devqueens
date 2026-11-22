@@ -15,6 +15,40 @@ const lessonSchema = z.object({
   resources: z.array(z.object({ title: z.string().max(180), url: httpUrl })).max(30).optional().default([]),
 });
 
+const assessmentSchema = z.object({
+  passingScore: z.number().min(0).max(100).default(70),
+  attemptLimit: z.number().int().min(1).max(20).default(3),
+  timeLimitMinutes: z.number().int().min(1).max(600).default(60),
+  availableFrom: z.coerce.date().optional(),
+  availableUntil: z.coerce.date().optional(),
+  questions: z.array(
+    z.object({
+      prompt: z.string().trim().min(1).max(2000),
+      type: z.enum(["multiple-choice", "true-false", "practical"]),
+      options: z.array(z.string().max(500)).max(10).optional().default([]),
+      correctAnswer: z.string().max(2000).optional(),
+      practicalInstructions: z.string().max(5000).optional(),
+      marks: z.number().min(1).max(1000).default(1),
+    }).superRefine((question, context) => {
+      if (question.type === "multiple-choice") {
+        const options = question.options.map((option) => option.trim()).filter(Boolean);
+        if (options.length < 2) context.addIssue({ code: "custom", path: ["options"], message: "Add at least two answer options." });
+        if (!options.includes(question.correctAnswer?.trim() ?? "")) context.addIssue({ code: "custom", path: ["correctAnswer"], message: "Choose one of the answer options as correct." });
+      }
+      if (question.type === "true-false" && !["True", "False"].includes(question.correctAnswer ?? "")) {
+        context.addIssue({ code: "custom", path: ["correctAnswer"], message: "Choose True or False as the correct answer." });
+      }
+      if (question.type === "practical" && !question.practicalInstructions?.trim()) {
+        context.addIssue({ code: "custom", path: ["practicalInstructions"], message: "Add instructions for the practical assessment." });
+      }
+    }),
+  ).max(100).optional().default([]),
+}).superRefine((assessment, context) => {
+  if (assessment.availableFrom && assessment.availableUntil && assessment.availableUntil <= assessment.availableFrom) {
+    context.addIssue({ code: "custom", path: ["availableUntil"], message: "The closing time must be after the opening time." });
+  }
+});
+
 export const courseSchema = z.object({
   title: z.string().trim().min(3).max(180),
   slug: z.string().trim().min(3).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
@@ -30,38 +64,11 @@ export const courseSchema = z.object({
       lessons: z.array(lessonSchema).min(1).max(100),
     }),
   ).min(1).max(40),
-  assessment: z.object({
-    passingScore: z.number().min(0).max(100).default(70),
-    attemptLimit: z.number().int().min(1).max(20).default(3),
-    timeLimitMinutes: z.number().int().min(1).max(600).default(60),
-    availableFrom: z.coerce.date().optional(),
-    availableUntil: z.coerce.date().optional(),
-    questions: z.array(
-      z.object({
-        prompt: z.string().trim().min(1).max(2000),
-        type: z.enum(["multiple-choice", "true-false", "practical"]),
-        options: z.array(z.string().max(500)).max(10).optional().default([]),
-        correctAnswer: z.string().max(2000).optional(),
-        practicalInstructions: z.string().max(5000).optional(),
-        marks: z.number().min(1).max(1000).default(1),
-      }).superRefine((question, context) => {
-        if (question.type === "multiple-choice") {
-          const options = question.options.map((option) => option.trim()).filter(Boolean);
-          if (options.length < 2) context.addIssue({ code: "custom", path: ["options"], message: "Add at least two answer options." });
-          if (!options.includes(question.correctAnswer?.trim() ?? "")) context.addIssue({ code: "custom", path: ["correctAnswer"], message: "Choose one of the answer options as correct." });
-        }
-        if (question.type === "true-false" && !["True", "False"].includes(question.correctAnswer ?? "")) {
-          context.addIssue({ code: "custom", path: ["correctAnswer"], message: "Choose True or False as the correct answer." });
-        }
-        if (question.type === "practical" && !question.practicalInstructions?.trim()) {
-          context.addIssue({ code: "custom", path: ["practicalInstructions"], message: "Add instructions for the practical assessment." });
-        }
-      }),
-    ).min(1).max(100),
-  }).superRefine((assessment, context) => {
-    if (assessment.availableFrom && assessment.availableUntil && assessment.availableUntil <= assessment.availableFrom) {
-      context.addIssue({ code: "custom", path: ["availableUntil"], message: "The closing time must be after the opening time." });
-    }
+  assessment: assessmentSchema.optional().default({
+    passingScore: 70,
+    attemptLimit: 3,
+    timeLimitMinutes: 60,
+    questions: [],
   }),
 });
 

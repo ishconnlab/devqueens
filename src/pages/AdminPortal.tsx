@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
 import { ArrowDownToLine, ArrowRight, BookOpen, Check, ChevronDown, CircleAlert, FileJson2, Plus, Save, ShieldCheck, Trash2, Upload, Users, X } from "lucide-react";
-import { api } from "@/lib/api";
+import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { EmptyState, PageHeading, PlatformShell } from "@/components/platform/PlatformShell";
 import { AdminInboxPage } from "@/pages/InboxPages";
@@ -20,10 +20,20 @@ type CourseForm = {
   assessment: { passingScore: number; attemptLimit: number; timeLimitMinutes: number; availableFrom: string; availableUntil: string; questions: { prompt: string; type: "multiple-choice" | "true-false" | "practical"; options: string[]; correctAnswer: string; practicalInstructions: string; marks: number }[] };
 };
 
+function courseErrorMessage(cause: unknown, fallback: string) {
+  if (!(cause instanceof ApiError)) return cause instanceof Error ? cause.message : fallback;
+  if (!cause.details || typeof cause.details !== "object") return cause.message;
+  const details = cause.details as { formErrors?: string[]; fieldErrors?: Record<string, string[]> };
+  const fieldMessages = Object.entries(details.fieldErrors ?? {}).flatMap(([field, messages]) =>
+    messages.map((message) => `${field}: ${message}`),
+  );
+  return [...(details.formErrors ?? []), ...fieldMessages].join(" ") || cause.message;
+}
+
 const emptyCourse: CourseForm = {
   title: "", slug: "", description: "", coverImage: "", level: "Beginner", duration: "", status: "draft", completionRequirementPercent: 100,
   modules: [{ title: "Module 1", lessons: [{ title: "Lesson 1", content: "", exercise: "", resources: [] }] }],
-  assessment: { passingScore: 70, attemptLimit: 3, timeLimitMinutes: 60, availableFrom: "", availableUntil: "", questions: [{ prompt: "", type: "multiple-choice", options: ["", ""], correctAnswer: "", practicalInstructions: "", marks: 1 }] },
+  assessment: { passingScore: 70, attemptLimit: 3, timeLimitMinutes: 60, availableFrom: "", availableUntil: "", questions: [] },
 };
 
 function Field({ label, className = "", children }: { label: string; className?: string; children: React.ReactNode }) {
@@ -209,7 +219,7 @@ function CourseManager() {
       await api(selectedId && mode === "builder" ? `/admin/courses/${selectedId}` : mode === "import" ? "/admin/courses/import" : "/admin/courses", { method: selectedId && mode === "builder" ? "PUT" : "POST", body });
       setNotice(mode === "import" ? "Validated JSON course imported." : selectedId ? "Course changes saved." : "Course created.");
       setForm(emptyCourse); setSelectedId(""); setImportText(""); setPreview(false); await load();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Course could not be saved."); }
+    } catch (cause) { setError(courseErrorMessage(cause, "Course could not be saved.")); }
     finally { setBusy(false); }
   };
 
@@ -225,7 +235,7 @@ function CourseManager() {
       const value = JSON.parse(importText);
       const response = await api<{ valid: boolean; preview: CourseForm }>("/admin/courses/import/preview", { method: "POST", body: value });
       setImportText(JSON.stringify(response.preview, null, 2)); setPreview(true); setNotice(`Course “${response.preview.title}” is valid and ready to save.`);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "JSON preview failed."); }
+    } catch (cause) { setError(courseErrorMessage(cause, "JSON preview failed.")); }
     finally { setBusy(false); }
   };
 
@@ -265,7 +275,7 @@ function CourseManager() {
     <div className="mb-5 flex flex-wrap gap-2"><button onClick={() => { setMode("builder"); setSelectedId(""); setForm(emptyCourse); }} className={`btn-outline-brand ${mode === "builder" ? "border-orange-500 bg-orange-50" : ""}`}>Visual course builder</button><button onClick={() => setMode("import")} className={`btn-outline-brand ${mode === "import" ? "border-orange-500 bg-orange-50" : ""}`}><FileJson2 size={15} /> Import JSON</button><label className="btn-outline-brand cursor-pointer"><Upload size={15} /> Choose JSON file<input type="file" accept=".json,application/json" className="sr-only" onChange={(e) => void importFile(e.target.files?.[0])} /></label></div>
     {error && <p role="alert" className="notice-error mb-4">{error}</p>}{notice && <p role="status" className="notice-success mb-4">{notice}</p>}
     {mode === "import" ? <section className="rounded-xl border border-orange-100 bg-white p-5">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-display font-bold">Course JSON import</h2><p className="mt-1 text-xs text-stone-500">A valid course must include at least one module, lesson and assessment question. Preview is validated before save.</p></div><button onClick={() => void previewJson()} disabled={busy || !importText} className="btn-outline-brand">Validate & preview <Check size={15} /></button></div>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-display font-bold">Course JSON import</h2><p className="mt-1 text-xs text-stone-500">A valid course must include at least one module and lesson. Assessment questions are optional. Preview is validated before save.</p></div><button onClick={() => void previewJson()} disabled={busy || !importText} className="btn-outline-brand">Validate & preview <Check size={15} /></button></div>
       <textarea value={importText} onChange={(e) => { setImportText(e.target.value); setPreview(false); }} className="form-input min-h-[360px] font-mono text-xs leading-5" placeholder={JSON.stringify(emptyCourse, null, 2)} />
       {preview && <pre className="mt-4 max-h-56 overflow-auto rounded-lg bg-[#fff7ed] p-4 text-xs">{importText}</pre>}
       <button onClick={(event) => void saveCourse(event)} disabled={busy || !preview} className="btn-brand mt-4">{busy ? "Importing…" : "Import course"} <ArrowRight size={15} /></button>

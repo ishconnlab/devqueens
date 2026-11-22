@@ -34,6 +34,20 @@ describe("course import validation", () => {
     expect(result.assessment.attemptLimit).toBe(3);
   });
 
+  it("accepts courses without a final assessment", () => {
+    const result = courseSchema.parse({
+      ...validCourse,
+      assessment: { ...validCourse.assessment, questions: [] },
+    });
+    expect(result.assessment.questions).toEqual([]);
+  });
+
+  it("accepts courses that omit the assessment object", () => {
+    const { assessment: _assessment, ...courseWithoutAssessment } = validCourse;
+    const result = courseSchema.parse(courseWithoutAssessment);
+    expect(result.assessment.questions).toEqual([]);
+  });
+
   it("rejects malformed course slugs, empty curricula, and invalid answer keys", () => {
     expect(courseSchema.safeParse({ ...validCourse, slug: "../course" }).success).toBe(false);
     expect(courseSchema.safeParse({ ...validCourse, modules: [] }).success).toBe(false);
